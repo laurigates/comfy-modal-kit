@@ -1,0 +1,29 @@
+{
+  "name": "@laurigates/comfy-modal-kit",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared modal-shell + fzf-lite fuzzy-matcher primitives for ComfyUI custom-node packs. Single-sourced TypeScript, built to bundled ESM + declarations.",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --target browser --format esm --outdir dist && tsc --emitDeclarationOnly --declaration --outDir dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check",
+    "knip": "knip"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@biomejs/biome": "^2.4.15",
+    "vitest": "^4.1.7",
+    "knip": "^5.0.0"
+  }
+}

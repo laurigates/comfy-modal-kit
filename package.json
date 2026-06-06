@@ -1,6 +1,6 @@
 {
   "name": "@laurigates/comfy-modal-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Shared modal-shell + fzf-lite fuzzy-matcher primitives for ComfyUI custom-node packs. Single-sourced TypeScript, built to bundled ESM + declarations.",
   "files": [

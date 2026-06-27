@@ -13,6 +13,16 @@ export {
   highlightMatches,
 } from "./modal-fuzzy.js";
 export {
+  copyTextToClipboard,
+  defaultCopyable,
+  defaultLife,
+  type NotifyController,
+  type NotifyOptions,
+  type NotifySeverity,
+  notify,
+  notifyClipboardText,
+} from "./modal-notify.js";
+export {
   closeModalShell,
   type ModalShellController,
   type ModalShellOptions,

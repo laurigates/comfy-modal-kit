@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.3.0...comfy-modal-kit-v0.3.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **npm:** add repository metadata required for provenance publish ([#6](https://github.com/laurigates/comfy-modal-kit/issues/6)) ([b012370](https://github.com/laurigates/comfy-modal-kit/commit/b012370d897a5537cd16c8f5bd1088e3de581428))
+
 ## [0.3.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.2.0...comfy-modal-kit-v0.3.0) (2026-06-27)
 
 

@@ -3,6 +3,14 @@
   "version": "0.3.0",
   "type": "module",
   "description": "Shared modal-shell + fzf-lite fuzzy-matcher primitives for ComfyUI custom-node packs. Single-sourced TypeScript, built to bundled ESM + declarations.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laurigates/comfy-modal-kit.git"
+  },
+  "homepage": "https://github.com/laurigates/comfy-modal-kit#readme",
+  "bugs": {
+    "url": "https://github.com/laurigates/comfy-modal-kit/issues"
+  },
   "files": [
     "dist"
   ],

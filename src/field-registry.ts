@@ -1,0 +1,123 @@
+// field-registry.ts — cross-pack registry of enhanced inline field controls.
+//
+// The problem: comfyui-prompt-editor is an all-fields node editor. It renders
+// a dumb <input type=number> for `seed` and a dumb <select> for `sampler_name`
+// / `ckpt_name`, even when comfyui-touch-numeric / -sampler-info /
+// -model-gallery are installed and each owns a richer control for exactly
+// those widgets. The richer control is reachable only by tapping the widget on
+// the canvas, never from inside the editor.
+//
+// The fix: a provider pack REGISTERS a FieldProvider here; the editor
+// RESOLVES the highest-priority matching provider per field and mounts its
+// FieldControl inline in place of the built-in control. The registry lives on
+// the shared runtime rendezvous (getKit) so the per-pack inlined copies share
+// ONE provider list.
+//
+// Additive-fallback contract: resolveFieldProvider returns null when nothing
+// matches, and the consumer MUST fall back to its built-in control. A
+// provider that isn't installed simply doesn't register — the editor keeps
+// working exactly as before.
+
+import { getKit } from "./kit-global.js";
+
+/** The subset of a LiteGraph widget a provider inspects to decide a match. */
+export interface FieldWidgetLike {
+  /** Widget name, e.g. "seed", "sampler_name", "ckpt_name". */
+  name?: string;
+  /** Widget type, e.g. "number", "combo", "toggle". */
+  type?: string;
+  /** Current widget value. */
+  value?: unknown;
+  /** Widget options; `values` holds a combo's choices. */
+  options?: { values?: unknown } & Record<string, unknown>;
+}
+
+/** Context handed to a provider's create(). */
+export interface FieldControlContext {
+  /** The widget the control is being built for. */
+  widget: FieldWidgetLike;
+  /** The owning node (opaque — providers narrow it themselves). */
+  node: unknown;
+  /** The widget's value at open time, for change tracking. */
+  initialValue: unknown;
+}
+
+/**
+ * A live, mounted inline control returned by a provider's create(). Maps 1:1
+ * onto comfyui-prompt-editor's existing FieldRow contract (el / read /
+ * changed / focus), so consumption is a drop-in wrap.
+ */
+export interface FieldControl {
+  /** Root element to mount in the field row. */
+  el: HTMLElement;
+  /** Current value, coerced to the widget's native type, for commit. */
+  getValue(): unknown;
+  /** Whether the value differs from `initialValue`. */
+  hasChanged(): boolean;
+  /** Optional: focus the control's primary input. */
+  focus?(): void;
+  /** Optional: tear down listeners / DOM when the row is discarded. */
+  destroy?(): void;
+}
+
+/** A registered provider of enhanced inline field controls. */
+export interface FieldProvider {
+  /** Stable id; re-registering the same id replaces the prior entry. */
+  id: string;
+  /** Higher wins when multiple providers match. Defaults to 0. */
+  priority?: number;
+  /** Return true when this provider handles the given widget. */
+  match(widget: FieldWidgetLike, node: unknown): boolean;
+  /** Build the live control. Called lazily when the field is rendered. */
+  create(ctx: FieldControlContext): FieldControl;
+}
+
+/**
+ * Register a field provider. Idempotent by `id`: registering an id that is
+ * already present replaces it in place (so a pack reloading its extension
+ * doesn't accumulate duplicates).
+ */
+export function registerFieldProvider(provider: FieldProvider): void {
+  const list = getKit().fieldProviders;
+  const i = list.findIndex((p) => p.id === provider.id);
+  if (i >= 0) {
+    list.splice(i, 1, provider);
+  } else {
+    list.push(provider);
+  }
+}
+
+/** The currently registered providers (read-only snapshot reference). */
+export function getFieldProviders(): readonly FieldProvider[] {
+  return getKit().fieldProviders;
+}
+
+/**
+ * Resolve the highest-priority provider whose match() returns true for the
+ * given widget. Ties (equal priority) resolve to the earliest registered.
+ * A match() that throws is swallowed (logged) and treated as no-match, so one
+ * misbehaving provider can never break the editor's field rendering.
+ *
+ * @returns the winning provider, or null when nothing matches (fall back to
+ *          the built-in control).
+ */
+export function resolveFieldProvider(widget: FieldWidgetLike, node: unknown): FieldProvider | null {
+  let best: FieldProvider | null = null;
+  let bestPriority = Number.NEGATIVE_INFINITY;
+  for (const p of getKit().fieldProviders) {
+    let matched = false;
+    try {
+      matched = p.match(widget, node);
+    } catch (e) {
+      console.warn(`[comfy-modal-kit] field provider "${p.id}" match() threw`, e);
+      matched = false;
+    }
+    if (!matched) continue;
+    const priority = p.priority ?? 0;
+    if (priority > bestPriority) {
+      best = p;
+      bestPriority = priority;
+    }
+  }
+  return best;
+}

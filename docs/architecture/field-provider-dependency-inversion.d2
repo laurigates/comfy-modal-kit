@@ -1,0 +1,38 @@
+# Dependency inversion: provider packs and the consumer both depend on the
+# kit's FieldProvider contract, not on each other.
+direction: right
+
+kit: comfy-modal-kit {
+  shape: package
+  contract: "FieldProvider contract\n(field-registry.ts)" {
+    shape: hexagon
+  }
+  registry: "getKit().fieldProviders\n(Symbol.for rendezvous)" {
+    shape: cylinder
+  }
+  contract -> registry: "register / resolve"
+}
+
+providers: Provider packs {
+  numeric: comfyui-touch-numeric\n(seed keypad)
+  sampler: comfyui-sampler-info\n(fuzzy combo)
+  gallery: comfyui-model-gallery\n(model combo)
+}
+
+consumer: comfyui-prompt-editor\n(all-fields node editor) {
+  shape: rectangle
+}
+
+providers.numeric -> kit.contract: "registerFieldProvider()" {
+  style.stroke: "#2e7d32"
+}
+providers.sampler -> kit.contract: "registerFieldProvider()" {
+  style.stroke: "#2e7d32"
+}
+providers.gallery -> kit.contract: "registerFieldProvider()" {
+  style.stroke: "#2e7d32"
+}
+
+consumer -> kit.contract: "resolveFieldProvider()\nmount FieldControl / fallback" {
+  style.stroke: "#1565c0"
+}

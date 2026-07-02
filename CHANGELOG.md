@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.3.1...comfy-modal-kit-v0.4.0) (2026-07-02)
+
+
+### Features
+
+* **kit:** field-provider registry + cross-pack click coordination ([#8](https://github.com/laurigates/comfy-modal-kit/issues/8)) ([327a232](https://github.com/laurigates/comfy-modal-kit/commit/327a232241d357902b12ebac6400bec72c03354e))
+
 ## [0.3.1](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.3.0...comfy-modal-kit-v0.3.1) (2026-06-27)
 
 

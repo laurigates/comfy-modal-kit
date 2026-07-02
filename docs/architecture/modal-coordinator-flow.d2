@@ -1,0 +1,67 @@
+# Cross-pack modal coordination and the best-effort modal->gesture veto.
+direction: down
+
+shared: "Shared runtime (getKit, Symbol.for)" {
+  slot: "activeModal slot\n(one across ALL packs)" {
+    shape: cylinder
+  }
+}
+
+open: "Any pack: openModalShell()" {
+  shape: oval
+}
+set: "setActiveModal(handle)" {
+  shape: rectangle
+}
+dismiss_prev: "dismissActiveModal():\nclear slot, then prior.close()" {
+  shape: rectangle
+  style.fill: "#fff3e0"
+}
+install: "installPointerGuard()\n(once, window capture)" {
+  shape: rectangle
+}
+
+open -> set
+set -> dismiss_prev: "dismiss whatever is on screen"
+set -> install
+set -> shared.slot: "store new handle" {
+  style.stroke: "#1565c0"
+}
+
+pointer: "window pointerdown (capture)" {
+  shape: oval
+}
+guard: "pointerGuard: modal active?" {
+  shape: diamond
+}
+inside: "target inside modal:\npass through" {
+  shape: rectangle
+  style.fill: "#e8f5e9"
+}
+outside: "target outside modal:\nstopImmediatePropagation()\n+ dismissActiveModal()" {
+  shape: rectangle
+  style.fill: "#ffebee"
+}
+gestures: "gesture packs\n(touch-connect / -resize / -tooltips)\nwindow-capture listeners" {
+  shape: rectangle
+}
+
+pointer -> guard
+guard -> inside: "no / inside"
+guard -> outside: "yes + outside" {
+  style.stroke: "#c62828"
+}
+outside -> gestures: "vetoed (best-effort)" {
+  style.stroke-dash: 3
+  style.stroke: "#c62828"
+}
+guard -> shared.slot: "reads activeModal" {
+  style.stroke-dash: 3
+}
+
+claim: "Future work: gesture packs call\nisModalActive() / claimPointer(id)\nfor full veto" {
+  shape: rectangle
+  style.stroke-dash: 3
+  style.fill: "#f3e5f5"
+}
+gestures -> claim

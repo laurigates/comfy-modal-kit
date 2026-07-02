@@ -13,10 +13,20 @@
 // CSS is namespaced under `.cmp-*` ("Comfy Modal Picker"). All ids on
 // elements outside the cmp- prefix are explicitly avoided.
 
+import {
+  type ActiveModalHandle,
+  dismissActiveModal,
+  getActiveModal,
+  setActiveModal,
+} from "./modal-coordinator.js";
+
 const STYLE_ID = "cmp-shell-style";
 
-// Single-modal-at-a-time. Opening a new shell dismisses the previous one.
-let ACTIVE: ModalShellController | null = null;
+// Single-modal-at-a-time is enforced by the shared modal-coordinator (the
+// `activeModal` slot on getKit()), NOT a module-local singleton. Because each
+// pack inlines its own copy of this kit, a module-local `let ACTIVE` would be
+// per-pack; the coordinator's shared slot makes any pack's open dismiss
+// whatever is truly on screen. See modal-coordinator.ts.
 
 const CSS = `
 .cmp-backdrop {
@@ -224,23 +234,6 @@ function ensureStyle(): void {
   document.head.appendChild(s);
 }
 
-function dismissActive(): void {
-  if (!ACTIVE) return;
-  const a = ACTIVE;
-  ACTIVE = null;
-  try {
-    a.backdrop.remove();
-    a.dialog.remove();
-    document.removeEventListener("keydown", a._onKey, true);
-  } finally {
-    try {
-      a.opts.onClose?.();
-    } catch (e) {
-      console.warn("[modal-shell] onClose threw", e);
-    }
-  }
-}
-
 /**
  * Open a modal shell.
  *
@@ -249,14 +242,9 @@ function dismissActive(): void {
  */
 export function openModalShell(opts: ModalShellOptions = {}): ModalShellController {
   ensureStyle();
-  dismissActive();
 
   const backdrop = document.createElement("div");
   backdrop.className = "cmp-backdrop";
-  // pointerdown, not click — on touch, the synthetic click that follows
-  // touchend (~300ms) would re-fire on the just-mounted backdrop and
-  // dismiss immediately. Pointerdown is not re-synthesized.
-  backdrop.addEventListener("pointerdown", dismissActive);
 
   const dialog = document.createElement("div");
   dialog.className = "cmp-dialog";
@@ -285,7 +273,6 @@ export function openModalShell(opts: ModalShellOptions = {}): ModalShellControll
   closeBtn.type = "button";
   closeBtn.textContent = "×";
   closeBtn.title = "Close (Esc)";
-  closeBtn.addEventListener("click", dismissActive);
   headerEl.append(titleEl, closeBtn);
 
   // Toolbar (always present but hidden when empty via :empty selector)
@@ -325,12 +312,51 @@ export function openModalShell(opts: ModalShellOptions = {}): ModalShellControll
 
   dialog.append(headerEl, toolbarEl, searchRow, bodyEl, footerEl);
 
+  // Idempotent DOM teardown. The coordinator clears the shared activeModal
+  // slot BEFORE invoking this, so teardown never re-enters the coordinator.
+  let torn = false;
+  const teardown = (): void => {
+    if (torn) return;
+    torn = true;
+    try {
+      backdrop.remove();
+      dialog.remove();
+      document.removeEventListener("keydown", onKey, true);
+    } finally {
+      try {
+        opts.onClose?.();
+      } catch (e) {
+        console.warn("[modal-shell] onClose threw", e);
+      }
+    }
+  };
+
+  const handle: ActiveModalHandle = { id: "modal-shell", element: dialog, close: teardown };
+
+  // User-initiated dismiss (backdrop tap, ESC, close button, public close()).
+  // Route through the coordinator when this shell is the active modal so the
+  // shared slot clears; otherwise it was already superseded, so tear down the
+  // now-orphaned DOM directly.
+  const requestClose = (): void => {
+    if (getActiveModal() === handle) {
+      dismissActiveModal();
+    } else {
+      teardown();
+    }
+  };
+
+  // pointerdown, not click — on touch, the synthetic click that follows
+  // touchend (~300ms) would re-fire on the just-mounted backdrop and dismiss
+  // immediately. Pointerdown is not re-synthesized.
+  backdrop.addEventListener("pointerdown", requestClose);
+  closeBtn.addEventListener("click", requestClose);
+
   // Keyboard
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      dismissActive();
+      requestClose();
       return;
     }
     try {
@@ -358,19 +384,21 @@ export function openModalShell(opts: ModalShellOptions = {}): ModalShellControll
     setStatus(s: string) {
       statusEl.textContent = s || "";
     },
-    close: dismissActive,
+    close: requestClose,
     _onKey: onKey,
     opts,
   };
 
-  ACTIVE = controller;
+  // Register as the single active modal (dismisses any prior modal, across
+  // packs, and installs the window pointer guard).
+  setActiveModal(handle);
 
   // Defer focus until after the originating tap event settles, so iOS
   // doesn't fight with the soft keyboard.
   if (opts.showSearch !== false) {
     requestAnimationFrame(() => {
-      // Re-check ACTIVE in case the caller closed synchronously.
-      if (ACTIVE === controller) searchEl.focus();
+      // Re-check in case the caller closed synchronously.
+      if (getActiveModal() === handle) searchEl.focus();
     });
   }
 
@@ -379,5 +407,5 @@ export function openModalShell(opts: ModalShellOptions = {}): ModalShellControll
 
 /** Programmatically close any currently-open shell. No-op if none. */
 export function closeModalShell(): void {
-  dismissActive();
+  dismissActiveModal();
 }

@@ -1,0 +1,43 @@
+# Field resolution when the prompt-editor renders a node's fields. Providers
+# are resolved lazily at render time, so install order does not matter.
+direction: down
+
+open: "User opens prompt-editor on a node" {
+  shape: oval
+}
+loop: "For each widget on the node" {
+  shape: rectangle
+}
+resolve: "resolveFieldProvider(widget, node)" {
+  shape: diamond
+}
+mount: "Provider matched:\ncreate() -> FieldControl\nmount FieldControl.el in the row" {
+  shape: rectangle
+  style.fill: "#e8f5e9"
+}
+fallback: "No provider (null):\nbuild the built-in\n<input> / <select>" {
+  shape: rectangle
+  style.fill: "#fff3e0"
+}
+commit: "On save: read each row via\ngetValue() / hasChanged();\ncommit only changed widgets" {
+  shape: rectangle
+}
+close: "On close: FieldControl.destroy()\nfor mounted provider controls" {
+  shape: rectangle
+}
+done: "Editor closed" {
+  shape: oval
+}
+
+open -> loop
+loop -> resolve
+resolve -> mount: "match() true\n(highest priority)" {
+  style.stroke: "#2e7d32"
+}
+resolve -> fallback: "null" {
+  style.stroke: "#e65100"
+}
+mount -> commit
+fallback -> commit
+commit -> close
+close -> done

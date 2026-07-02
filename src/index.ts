@@ -6,6 +6,28 @@
 // here; their `bun build` inlines the code into their served web/dist bundle.
 
 export {
+  type FieldControl,
+  type FieldControlContext,
+  type FieldProvider,
+  type FieldWidgetLike,
+  getFieldProviders,
+  registerFieldProvider,
+  resolveFieldProvider,
+} from "./field-registry.js";
+export {
+  type ActiveModalHandle,
+  claimPointer,
+  dismissActiveModal,
+  getActiveModal,
+  installPointerGuard,
+  isModalActive,
+  type PointerPatchableWidget,
+  patchWidgetPointer,
+  setActiveModal,
+  type WidgetPointerOpener,
+  type WidgetPointerPatch,
+} from "./modal-coordinator.js";
+export {
   type FuzzyRankResult,
   type FuzzyScoreResult,
   fuzzyRank,

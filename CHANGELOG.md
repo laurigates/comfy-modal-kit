@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.4.0...comfy-modal-kit-v0.5.0) (2026-07-02)
+
+
+### Features
+
+* **rating:** shared star-rating helpers for gallery-style packs ([#11](https://github.com/laurigates/comfy-modal-kit/issues/11)) ([b1fd927](https://github.com/laurigates/comfy-modal-kit/commit/b1fd927b96a118cf73a6c1e3b16ea1c53827add6))
+
 ## [0.4.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.3.1...comfy-modal-kit-v0.4.0) (2026-07-02)
 
 

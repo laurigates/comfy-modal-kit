@@ -45,6 +45,16 @@ export {
   notifyClipboardText,
 } from "./modal-notify.js";
 export {
+  applyStars,
+  nextRating,
+  postRating,
+  type RatingAddress,
+  ratingOf,
+  ratingRequestBody,
+  starsHTML,
+  warnRating,
+} from "./modal-rating.js";
+export {
   closeModalShell,
   type ModalShellController,
   type ModalShellOptions,

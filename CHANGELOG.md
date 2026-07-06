@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.5.0...comfy-modal-kit-v0.6.0) (2026-07-06)
+
+
+### Features
+
+* launcher conventions, in-shell overlays, style-inject, widget-button helper ([#13](https://github.com/laurigates/comfy-modal-kit/issues/13)) ([bf0141a](https://github.com/laurigates/comfy-modal-kit/commit/bf0141a0e8fd8dd03ee675b8a975e9c69daafae1))
+
 ## [0.5.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.4.0...comfy-modal-kit-v0.5.0) (2026-07-02)
 
 

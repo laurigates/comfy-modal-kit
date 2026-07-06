@@ -12,6 +12,8 @@
 // ("Comfy Modal Notify"); the stack sits at z-index 10000, above the modal
 // shell's 9999 so a notification raised from inside a modal is still visible.
 
+import { ensureStyleOnce } from "./style-inject.js";
+
 const STYLE_ID = "cmn-notify-style";
 const CONTAINER_ID = "cmn-notify-container";
 
@@ -197,15 +199,6 @@ const CSS = `
 .cmn-copy.cmn-copied { background: #2f4a30; border-color: #4caf50; color: #cfe8d0; }
 `;
 
-function ensureStyle(): void {
-  if (typeof document === "undefined") return;
-  if (document.getElementById(STYLE_ID)) return;
-  const s = document.createElement("style");
-  s.id = STYLE_ID;
-  s.textContent = CSS;
-  document.head.appendChild(s);
-}
-
 function ensureContainer(): HTMLElement {
   let c = document.getElementById(CONTAINER_ID);
   if (!c) {
@@ -230,7 +223,7 @@ export function notify(opts: NotifyOptions): NotifyController | null {
     console.info(`[notify] ${severity}: ${summary}${detail ? ` — ${detail}` : ""}`);
     return null;
   }
-  ensureStyle();
+  ensureStyleOnce(STYLE_ID, CSS);
   const container = ensureContainer();
 
   const life = opts.life ?? defaultLife(severity);

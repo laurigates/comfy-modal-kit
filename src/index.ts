@@ -15,6 +15,12 @@ export {
   resolveFieldProvider,
 } from "./field-registry.js";
 export {
+  FAMILY_MENU_PATH,
+  type LauncherFields,
+  type LauncherOptions,
+  makeLauncher,
+} from "./launcher.js";
+export {
   type ActiveModalHandle,
   claimPointer,
   dismissActiveModal,
@@ -60,3 +66,13 @@ export {
   type ModalShellOptions,
   openModalShell,
 } from "./modal-shell.js";
+export {
+  type ConfirmInShellOptions,
+  confirmInShell,
+  openShellOverlay,
+  type PromptInShellOptions,
+  promptInShell,
+  type ShellOverlayHandle,
+} from "./shell-overlay.js";
+export { ensureStyleOnce } from "./style-inject.js";
+export { appendButtonWidget, type ButtonWidgetHost } from "./widget-button.js";

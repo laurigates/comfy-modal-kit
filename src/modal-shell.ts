@@ -19,6 +19,7 @@ import {
   getActiveModal,
   setActiveModal,
 } from "./modal-coordinator.js";
+import { ensureStyleOnce } from "./style-inject.js";
 
 const STYLE_ID = "cmp-shell-style";
 
@@ -226,14 +227,6 @@ export interface ModalShellController {
   opts: ModalShellOptions;
 }
 
-function ensureStyle(): void {
-  if (document.getElementById(STYLE_ID)) return;
-  const s = document.createElement("style");
-  s.id = STYLE_ID;
-  s.textContent = CSS;
-  document.head.appendChild(s);
-}
-
 /**
  * Open a modal shell.
  *
@@ -241,7 +234,7 @@ function ensureStyle(): void {
  * @returns A controller exposing the shell's DOM elements and lifecycle.
  */
 export function openModalShell(opts: ModalShellOptions = {}): ModalShellController {
-  ensureStyle();
+  ensureStyleOnce(STYLE_ID, CSS);
 
   const backdrop = document.createElement("div");
   backdrop.className = "cmp-backdrop";

@@ -10,15 +10,20 @@ runtime.
 
 ## Architecture
 
-Five surfaces, one shared runtime:
+One shared runtime, these surfaces:
 
 | Module | Role |
 |---|---|
 | `src/modal-shell.ts` | Bare modal dialog (backdrop + header/search/body/footer). CSS `.cmp-*`. |
 | `src/modal-fuzzy.ts` | Pure fzf-lite scoring + `highlightMatches`. |
 | `src/modal-notify.ts` | Transient toasts with copy-to-clipboard. CSS `.cmn-*`. |
+| `src/modal-rating.ts` | 0..5 star-rating helpers for the gallery packs. |
 | `src/field-registry.ts` | Cross-pack registry of enhanced inline field controls. |
 | `src/modal-coordinator.ts` | Single active-modal registry + `patchWidgetPointer` + best-effort pointer guard. |
+| `src/shell-overlay.ts` | In-dialog confirm/prompt/custom overlays (secondary prompts under single-modal discipline). CSS `.cmp-ov-*`. See ADR-0002. |
+| `src/launcher.ts` | `makeLauncher` + `FAMILY_MENU_PATH` — the family's command/menu/action-bar conventions in code. See ADR-0002. |
+| `src/widget-button.ts` | `appendButtonWidget` — the Strategy-B non-serialized button-widget safety net. |
+| `src/style-inject.ts` | `ensureStyleOnce(id, css)` — style injection deduped by DOM id (cross-bundle safe). |
 | `src/kit-global.ts` | **Internal.** The `Symbol.for` runtime rendezvous all shared state lives on. |
 
 **Why the `Symbol.for` rendezvous** (`kit-global.ts`): each pack inlines its own

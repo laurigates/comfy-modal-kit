@@ -16,7 +16,14 @@
 // Additive-fallback contract: resolveFieldProvider returns null when nothing
 // matches, and the consumer MUST fall back to its built-in control. A
 // provider that isn't installed simply doesn't register — the editor keeps
-// working exactly as before.
+// working exactly as before. The same contract governs the optional members
+// of FieldControlContext / FieldControl below: a host that doesn't supply
+// them and a provider that ignores them both behave exactly as before.
+//
+// Cross-field awareness: a host that renders several fields at once may pass
+// getSiblingValue / onSiblingChange so one control can react to another's
+// UNCOMMITTED value (see FieldControlContext). This registry defines only the
+// contract — the host owns the bus; the kit ships no runtime for it.
 
 import { getKit } from "./kit-global.js";
 
@@ -40,6 +47,33 @@ export interface FieldControlContext {
   node: unknown;
   /** The widget's value at open time, for change tracking. */
   initialValue: unknown;
+  /**
+   * Optional: read the live in-modal value of a SIBLING widget on the same
+   * node — i.e. what the user has picked in another field of this same modal
+   * session, before anything is committed back to the node.
+   *
+   * Use this instead of reading `node.widgets[]`. A host that edits several
+   * fields at once (comfyui-prompt-editor) only writes values back to the
+   * node on commit, so `node.widgets[]` yields the COMMITTED value — the one
+   * from before the modal opened — not the uncommitted one the user just
+   * chose. A control that cross-references a sibling (e.g. highlighting the
+   * schedulers that pair with the currently-selected SAMPLER) reads a stale
+   * value if it goes to the node.
+   *
+   * Falls back to the node's committed value when the host has no live entry
+   * for that widget. Absent entirely when the host edits a single widget in
+   * its own modal — there, no sibling is live, and reading `node.widgets[]`
+   * IS correct.
+   */
+  getSiblingValue?(widgetName: string): unknown;
+  /**
+   * Optional: subscribe to sibling value changes for the lifetime of this
+   * modal session. The callback fires when ANY other field in the same modal
+   * changes; filter by `widgetName` for the sibling(s) you care about.
+   *
+   * @returns an unsubscribe function — call it from the control's destroy().
+   */
+  onSiblingChange?(cb: (widgetName: string, value: unknown) => void): () => void;
 }
 
 /**
@@ -48,7 +82,22 @@ export interface FieldControlContext {
  * changed / focus), so consumption is a drop-in wrap.
  */
 export interface FieldControl {
-  /** Root element to mount in the field row. */
+  /**
+   * Root element to mount in the field row.
+   *
+   * MUST NOT be a scroll container: no `overflow-y: auto|scroll`, no
+   * `overscroll-behavior: contain`, no fixed/`100%` height. Its natural height
+   * must be its content height; outer scrolling is the host modal's job — the
+   * shell has exactly one scroll region (`.cmp-body`).
+   *
+   * A control that scrolls internally works inside its own dialog (a
+   * constrained parent gives it a definite height) but breaks when mounted
+   * inline in a host modal: it never gets a definite height, so it has nothing
+   * to scroll, yet it still swallows the touch-scroll gesture — and
+   * `overscroll-behavior: contain` stops that gesture from chaining back out
+   * to the host's scroll region. The field, and everything below it, becomes
+   * unscrollable.
+   */
   el: HTMLElement;
   /** Current value, coerced to the widget's native type, for commit. */
   getValue(): unknown;
@@ -56,6 +105,15 @@ export interface FieldControl {
   hasChanged(): boolean;
   /** Optional: focus the control's primary input. */
   focus?(): void;
+  /**
+   * Optional: hand the host a callback to invoke whenever this control's value
+   * changes, so sibling fields in the same modal can react to it live (the
+   * other end of `FieldControlContext.getSiblingValue` / `onSiblingChange`).
+   *
+   * The host calls this once, right after create(). A control that has no
+   * siblings to inform simply omits it.
+   */
+  onValueChange?(cb: (value: unknown) => void): void;
   /** Optional: tear down listeners / DOM when the row is discarded. */
   destroy?(): void;
 }

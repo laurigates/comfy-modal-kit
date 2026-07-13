@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
   type FieldControl,
+  type FieldControlContext,
   type FieldProvider,
   type FieldWidgetLike,
   getFieldProviders,
@@ -106,5 +107,94 @@ describe("resolveFieldProvider", () => {
     );
     resolveFieldProvider(widget("seed"), node);
     expect(seen).toBe(node);
+  });
+});
+
+// The sibling-field members of FieldControlContext / FieldControl are OPTIONAL:
+// the host owns the bus, the kit only defines the contract. These tests pin the
+// additive-fallback behaviour on both sides — a host that provides nothing and a
+// provider that reads nothing must each keep working.
+describe("sibling-field context (additive)", () => {
+  // A provider that uses the sibling bus when it's there and degrades when it
+  // isn't — the shape every cross-referencing provider should have.
+  const siblingAware = (): FieldProvider => ({
+    id: "scheduler",
+    match: (w) => w.name === "scheduler",
+    create: (ctx: FieldControlContext): FieldControl => {
+      let sampler = ctx.getSiblingValue?.("sampler_name") ?? null;
+      const unsubscribe = ctx.onSiblingChange?.((name, value) => {
+        if (name === "sampler_name") sampler = value;
+      });
+      return {
+        el: {} as HTMLElement,
+        getValue: () => sampler,
+        hasChanged: () => sampler !== ctx.initialValue,
+        destroy: () => unsubscribe?.(),
+      };
+    },
+  });
+
+  const baseCtx = (): FieldControlContext => ({
+    widget: widget("scheduler"),
+    node: null,
+    initialValue: "normal",
+  });
+
+  test("a context WITHOUT the optional members still builds a working control", () => {
+    registerFieldProvider(siblingAware());
+    const p = resolveFieldProvider(widget("scheduler"), null);
+    const ctrl = (p as FieldProvider).create(baseCtx());
+    expect(ctrl.getValue()).toBeNull();
+    expect(ctrl.hasChanged()).toBe(true);
+    // destroy() must not throw when there was nothing to unsubscribe from.
+    expect(() => ctrl.destroy?.()).not.toThrow();
+  });
+
+  test("a context WITH the optional members feeds live sibling values through", () => {
+    const listeners: Array<(name: string, value: unknown) => void> = [];
+    const live = new Map<string, unknown>([["sampler_name", "euler"]]);
+    const ctx: FieldControlContext = {
+      ...baseCtx(),
+      getSiblingValue: (name) => live.get(name),
+      onSiblingChange: (cb) => {
+        listeners.push(cb);
+        return () => {
+          listeners.splice(listeners.indexOf(cb), 1);
+        };
+      },
+    };
+
+    registerFieldProvider(siblingAware());
+    const p = resolveFieldProvider(widget("scheduler"), null);
+    const ctrl = (p as FieldProvider).create(ctx);
+
+    // The uncommitted in-modal value is visible at create time...
+    expect(ctrl.getValue()).toBe("euler");
+
+    // ...and subsequent sibling changes reach the control.
+    for (const cb of [...listeners]) cb("sampler_name", "dpmpp_2m");
+    expect(ctrl.getValue()).toBe("dpmpp_2m");
+
+    // An unrelated sibling change is ignored by this control's filter.
+    for (const cb of [...listeners]) cb("steps", 30);
+    expect(ctrl.getValue()).toBe("dpmpp_2m");
+
+    // destroy() releases the subscription.
+    ctrl.destroy?.();
+    expect(listeners).toHaveLength(0);
+  });
+
+  test("a provider that ignores the optional members is unaffected by them", () => {
+    registerFieldProvider(provider("plain", (w) => w.name === "seed"));
+    const p = resolveFieldProvider(widget("seed"), null);
+    const ctrl = (p as FieldProvider).create({
+      widget: widget("seed"),
+      node: null,
+      initialValue: 1,
+      getSiblingValue: () => "ignored",
+      onSiblingChange: () => () => {},
+    });
+    expect(ctrl.getValue()).toBeNull();
+    expect(ctrl.onValueChange).toBeUndefined();
   });
 });

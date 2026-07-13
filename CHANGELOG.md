@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.6.0...comfy-modal-kit-v0.7.0) (2026-07-13)
+
+
+### Features
+
+* **field-registry:** add optional sibling-field context and value-change notification ([#15](https://github.com/laurigates/comfy-modal-kit/issues/15)) ([6243604](https://github.com/laurigates/comfy-modal-kit/commit/62436044c9fada8f6dae7565c86e34a0bc9ac94b))
+
 ## [0.6.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.5.0...comfy-modal-kit-v0.6.0) (2026-07-06)
 
 

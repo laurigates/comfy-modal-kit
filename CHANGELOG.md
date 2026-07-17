@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.7.0...comfy-modal-kit-v0.7.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **npm:** declare MIT license ([#17](https://github.com/laurigates/comfy-modal-kit/issues/17)) ([9315a06](https://github.com/laurigates/comfy-modal-kit/commit/9315a064642d75a26a2d3fb03a3c1f97d3a88cc6))
+
 ## [0.7.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.6.0...comfy-modal-kit-v0.7.0) (2026-07-13)
 
 

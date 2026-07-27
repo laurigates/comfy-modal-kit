@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.7.1...comfy-modal-kit-v0.8.0) (2026-07-27)
+
+
+### Features
+
+* **model-picker:** add a cross-pack model-file picker registry ([#19](https://github.com/laurigates/comfy-modal-kit/issues/19)) ([524cc99](https://github.com/laurigates/comfy-modal-kit/commit/524cc9957078b939abb0b71e94b1d417fb4a381d))
+
 ## [0.7.1](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.7.0...comfy-modal-kit-v0.7.1) (2026-07-17)
 
 

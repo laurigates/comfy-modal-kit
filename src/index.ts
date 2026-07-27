@@ -67,6 +67,15 @@ export {
   openModalShell,
 } from "./modal-shell.js";
 export {
+  getModelPickers,
+  type ModelPicker,
+  type ModelPickerControl,
+  type ModelPickerRequest,
+  type ModelSummaryRequest,
+  registerModelPicker,
+  resolveModelPicker,
+} from "./model-picker-registry.js";
+export {
   type ConfirmInShellOptions,
   confirmInShell,
   openShellOverlay,

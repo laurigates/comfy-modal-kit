@@ -17,11 +17,14 @@
 
 import type { FieldProvider } from "./field-registry.js";
 import type { ActiveModalHandle } from "./modal-coordinator.js";
+import type { ModelPicker } from "./model-picker-registry.js";
 
 /** Shared mutable state — one instance per browser realm, keyed by Symbol. */
 interface KitRuntime {
   /** Registered field providers; a re-register by id replaces in place. */
   fieldProviders: FieldProvider[];
+  /** Registered model-file pickers; a re-register by id replaces in place. */
+  modelPickers: ModelPicker[];
   /** The single modal on screen across ALL packs, or null when none. */
   activeModal: ActiveModalHandle | null;
   /** Most-recent pointer-claim id (diagnostic / future arbitration). */
@@ -33,13 +36,23 @@ const KEY = Symbol.for("laurigates.comfyModalKit");
 /**
  * Return the shared KitRuntime, creating it on first access. All kit state
  * flows through this accessor so the inlined per-pack copies share one store.
+ *
+ * A pack running an OLDER inlined kit may have created this object before a
+ * field existed — nothing coordinates which pack's copy wins the race, and
+ * whichever loads first is the one that constructs it. So every collection is
+ * backfilled on access rather than only at construction: a newer pack asking
+ * for `modelPickers` on an object an older pack built must get an array, not
+ * `undefined`. This is what "extend the KitRuntime shape additively" means in
+ * practice.
  */
 export function getKit(): KitRuntime {
   const g = globalThis as unknown as Record<symbol, KitRuntime | undefined>;
   let kit = g[KEY];
   if (!kit) {
-    kit = { fieldProviders: [], activeModal: null, pointerClaim: null };
+    kit = { fieldProviders: [], modelPickers: [], activeModal: null, pointerClaim: null };
     g[KEY] = kit;
   }
+  if (!kit.fieldProviders) kit.fieldProviders = [];
+  if (!kit.modelPickers) kit.modelPickers = [];
   return kit;
 }

@@ -15,6 +15,8 @@ no `manifest.json` / `feature-tracker.json` / PRD here — YAGNI.
 | ID | Title | Status | Domain |
 |----|-------|--------|--------|
 | ADR-0001 | Cross-Pack Field-Provider Registry & Click Coordination | Accepted | api-design |
+| ADR-0002 | Family Launcher Conventions & In-Shell Overlay Primitives | Accepted | api-design |
+| ADR-0003 | A Separate Model-Picker Registry, Not a Widened Field Provider | Accepted | api-design |
 
 ## Status Definitions
 

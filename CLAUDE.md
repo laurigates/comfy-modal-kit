@@ -16,11 +16,11 @@ One shared runtime, these surfaces:
 |---|---|
 | `src/modal-shell.ts` | Bare modal dialog (backdrop + header/search/body/footer). CSS `.cmp-*`. |
 | `src/modal-fuzzy.ts` | Pure fzf-lite scoring + `highlightMatches`. |
-| `src/modal-notify.ts` | Transient toasts with copy-to-clipboard. CSS `.cmn-*`. |
+| `src/modal-notify.ts` | Transient toasts with copy-to-clipboard. CSS `.cmn-*`. Registers its body-level stack as modal chrome (below) and insets it (`cmn-modal-inset`) while a modal is up. |
 | `src/modal-rating.ts` | 0..5 star-rating helpers for the gallery packs. |
 | `src/field-registry.ts` | Cross-pack registry of enhanced inline field controls (widget → control). |
 | `src/model-picker-registry.ts` | Cross-pack registry of model-file pickers (`folder_paths` category → control). See ADR-0003. |
-| `src/modal-coordinator.ts` | Single active-modal registry + `patchWidgetPointer` + best-effort pointer guard. |
+| `src/modal-coordinator.ts` | Single active-modal registry + `patchWidgetPointer` + best-effort pointer guard + the **modal-chrome** registry (`registerModalChrome` / `unregisterModalChrome` / `isModalChrome`). |
 | `src/shell-overlay.ts` | In-dialog confirm/prompt/custom overlays (secondary prompts under single-modal discipline). CSS `.cmp-ov-*`. See ADR-0002. |
 | `src/launcher.ts` | `makeLauncher` + `FAMILY_MENU_PATH` — the family's command/menu/action-bar conventions in code. See ADR-0002. |
 | `src/widget-button.ts` | `appendButtonWidget` — the Strategy-B non-serialized button-widget safety net. |
@@ -45,6 +45,16 @@ compatibility surface: extend it additively, never re-shape.** See
 - **Keep the public surface stable.** The exported shapes are the contract for
   the inlined consumers. `src/index.ts` is the barrel; new public exports go
   there. Internal modules (`kit-global.ts`) stay out of the barrel.
+- **Chrome that renders above a modal must stay reachable through it.** The
+  pointer guard's hit-test is the dialog element, so anything the kit appends to
+  `document.body` to paint above the shell (today: `#cmn-notify-container`) reads
+  as "outside the modal" — that is how tapping a toast's × came to dismiss the
+  whole modal. Such an element MUST go through `registerModalChrome` (on every
+  raise, not just on create) and `unregisterModalChrome` before removal, and must
+  not physically sit on the shell's own controls. Mechanism, the
+  `data-cmp-chrome` cross-realm fallback and the mixed-kit-version caveat:
+  [`docs/architecture/README.md`](docs/architecture/README.md) → *"Outside the
+  modal" ≠ "outside the dialog element"*.
 - **Release-please owns versioning.** Never hand-edit `CHANGELOG.md`,
   `package.json` `version`, or `.release-please-manifest.json`. `feat:` cuts a
   minor, `fix:` a patch. The publish is OIDC trusted-publishing on release-PR

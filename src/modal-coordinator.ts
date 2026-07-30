@@ -22,7 +22,10 @@
 //    gesture packs to consult isModalActive() themselves (they register their
 //    own window-capture listeners, and same-target listener order across packs
 //    is non-deterministic) — that is the pointer-claim protocol below, and
-//    gesture-pack adoption of it is tracked as future work.
+//    gesture-pack adoption of it is tracked as future work. "Outside the modal"
+//    is not the same as "outside the dialog element": kit-owned chrome that
+//    renders above the modal from a body-level container (the notify stack) is
+//    registered via registerModalChrome and exempted from the guard.
 
 import { getKit } from "./kit-global.js";
 
@@ -55,7 +58,13 @@ export interface WidgetPointerPatch {
   restore(): void;
 }
 
-let guardInstalled = false;
+/**
+ * Attribute stamped on every registered chrome element. The registry lookup is
+ * the primary path; this attribute is the cross-realm belt-and-braces, so a
+ * chrome element registered by a *different* inlined kit copy (or one whose
+ * registry entry was lost) is still recognised by a DOM ancestor walk.
+ */
+const CHROME_ATTR = "data-cmp-chrome";
 
 /**
  * Register `handle` as the single active modal, dismissing any modal already
@@ -93,6 +102,57 @@ export function isModalActive(): boolean {
 /** The current active-modal handle, or null. */
 export function getActiveModal(): ActiveModalHandle | null {
   return getKit().activeModal;
+}
+
+// ============================================================
+// Modal chrome — kit-owned DOM that lives outside the dialog
+//
+// The notify stack (`#cmn-notify-container`) is a child of document.body, not of
+// the dialog, because it must paint above the modal shell (z-index 10000 vs
+// 9999) and outlive any single modal. That makes it "outside the active modal"
+// by the guard's hit-test, which is wrong: tapping a toast is interacting with
+// the modal experience, not dismissing it. Registering it as chrome exempts it.
+// ============================================================
+
+/** Mark `el` (and its subtree) as kit chrome the pointer guard must not veto. */
+export function registerModalChrome(el: HTMLElement): void {
+  const chrome = getKit().modalChrome;
+  if (!chrome.includes(el)) chrome.push(el);
+  el.setAttribute?.(CHROME_ATTR, "");
+}
+
+/**
+ * Drop `el` from the chrome registry. Callers MUST do this before removing the
+ * element from the DOM, so the shared registry never retains a detached node.
+ * The attribute comes off too — otherwise the cross-realm fallback below would
+ * keep answering "chrome" for an element this registry no longer knows about
+ * (`closest()` matches the element itself).
+ */
+export function unregisterModalChrome(el: HTMLElement): void {
+  const chrome = getKit().modalChrome;
+  for (let i = chrome.length - 1; i >= 0; i--) {
+    if (chrome[i] === el) chrome.splice(i, 1);
+  }
+  el.removeAttribute?.(CHROME_ATTR);
+}
+
+/**
+ * Whether `node` sits inside registered modal chrome. Runs on every pointerdown
+ * while a modal is up, so it stays cheap: a linear scan of a list that holds one
+ * or two entries, then a single `closest()` for the cross-realm fallback.
+ */
+export function isModalChrome(node: Node | null): boolean {
+  if (!node) return false;
+  for (const el of getKit().modalChrome) {
+    if (el.contains?.(node)) return true;
+  }
+  // Cross-realm / mixed-kit-version fallback: another inlined copy's registry
+  // is invisible to us, but the attribute it stamped is in the DOM.
+  const el =
+    node.nodeType === 1
+      ? (node as Element)
+      : (node as { parentElement?: Element | null }).parentElement;
+  return !!el?.closest?.(`[${CHROME_ATTR}]`);
 }
 
 /**
@@ -145,12 +205,16 @@ export function patchWidgetPointer(
  * a no-op outside a browser). While a modal is active, a pointerdown OUTSIDE
  * the active modal dismisses it and has its propagation stopped, so
  * window-level gesture packs don't also act on the same tap. Pointerdowns
- * inside the modal pass through untouched.
+ * inside the modal — or inside registered modal chrome — pass through untouched.
+ *
+ * The installed flag lives on the shared runtime, not in a module-local `let`,
+ * so the per-pack inlined copies install ONE window listener between them.
  */
 export function installPointerGuard(): void {
-  if (guardInstalled) return;
+  const kit = getKit();
+  if (kit.pointerGuardInstalled) return;
   if (typeof window === "undefined") return;
-  guardInstalled = true;
+  kit.pointerGuardInstalled = true;
   window.addEventListener("pointerdown", pointerGuard, true);
 }
 
@@ -160,6 +224,12 @@ function pointerGuard(e: Event): void {
   const target = e.target as Node | null;
   if (active.element && target && active.element.contains(target)) {
     return; // inside the modal — let it interact normally
+  }
+  if (isModalChrome(target)) {
+    // The notify stack sits above the modal on purpose (z-index 10000 > 9999)
+    // and is a child of body, so a tap on a toast must REACH the toast.
+    // Treating it as "outside" made dismissing a toast dismiss the whole modal.
+    return;
   }
   // Outside the active modal: veto any window-level gesture, then dismiss.
   e.stopImmediatePropagation();

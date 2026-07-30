@@ -11,7 +11,15 @@
 // to console when DOM is unavailable. CSS is namespaced under `.cmn-*`
 // ("Comfy Modal Notify"); the stack sits at z-index 10000, above the modal
 // shell's 9999 so a notification raised from inside a modal is still visible.
+//
+// Painting above the modal is not enough to be *usable* above it. The stack is a
+// child of document.body, so the coordinator's pointer guard used to read a tap
+// on a toast as "outside the modal" and dismiss the modal instead of the toast;
+// the container is therefore registered as modal chrome (and unregistered when
+// it goes away). It also shifts down while a modal is up so it doesn't sit on
+// top of the shell's close button — see `.cmn-modal-inset`.
 
+import { isModalActive, registerModalChrome, unregisterModalChrome } from "./modal-coordinator.js";
 import { ensureStyleOnce } from "./style-inject.js";
 
 const STYLE_ID = "cmn-notify-style";
@@ -130,6 +138,14 @@ const CSS = `
     pointer-events: none;
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
+/*
+ * While a modal is up, clear the shell header's close button: .cmp-close is a
+ * 36px button inside a .cmp-header padded 12px/14px at the dialog's top-right,
+ * which lands under the toast's own × — worst case a full-viewport dialog like
+ * comfyui-image-browser's .ib-dialog (100vw/100vh), where the two × controls
+ * overlap exactly. Applied per raise, so a toast on the bare canvas keeps 12px.
+ */
+.cmn-container.cmn-modal-inset { top: 64px; }
 .cmn-toast {
     pointer-events: auto;
     background: #1a1a1f;
@@ -174,8 +190,15 @@ const CSS = `
     font-size: 18px;
     line-height: 1;
     padding: 0;
-    width: 24px;
-    height: 24px;
+    /* Touch-first: a 32px target, with the growth absorbed by a negative margin
+       so the toast's visual density is unchanged from the old 24px glyph box. */
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: -4px -4px 0 0;
     flex-shrink: 0;
 }
 .cmn-close:hover { color: #fff; }
@@ -207,6 +230,18 @@ function ensureContainer(): HTMLElement {
     c.className = "cmn-container";
     document.body.appendChild(c);
   }
+  // The stack renders above the modal shell but is a child of body, so the
+  // pointer guard would otherwise read a tap on a toast as "outside the modal"
+  // and dismiss the modal instead of the toast.
+  //
+  // Registered on EVERY raise, not just on create: the container we adopt here
+  // may have been built by an inlined kit copy old enough to predate the chrome
+  // registry (<= 0.8.0's ensureContainer only appends). Such a pack raising a
+  // load-time toast without ever opening a shell leaves a container in the DOM
+  // that this copy's guard would then treat as "outside the modal". Registering
+  // unconditionally is free — registerModalChrome de-dupes by identity and
+  // re-stamps the attribute idempotently.
+  registerModalChrome(c);
   return c;
 }
 
@@ -225,6 +260,10 @@ export function notify(opts: NotifyOptions): NotifyController | null {
   }
   ensureStyleOnce(STYLE_ID, CSS);
   const container = ensureContainer();
+  // Re-evaluated on every raise, not just on create: the container outlives any
+  // one modal, so whether it needs to clear the shell header depends on the
+  // state at raise time.
+  container.classList.toggle("cmn-modal-inset", isModalActive());
 
   const life = opts.life ?? defaultLife(severity);
   const copyable = opts.copyable ?? defaultCopyable(severity);
@@ -237,7 +276,12 @@ export function notify(opts: NotifyOptions): NotifyController | null {
   const close = () => {
     if (timer) clearTimeout(timer);
     toast.remove();
-    if (container.childElementCount === 0) container.remove();
+    if (container.childElementCount === 0) {
+      // Unregister BEFORE removing, so the shared chrome registry never holds a
+      // detached node.
+      unregisterModalChrome(container);
+      container.remove();
+    }
   };
 
   // Row: text + close button

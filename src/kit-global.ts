@@ -29,6 +29,18 @@ interface KitRuntime {
   activeModal: ActiveModalHandle | null;
   /** Most-recent pointer-claim id (diagnostic / future arbitration). */
   pointerClaim: string | null;
+  /**
+   * Kit-owned DOM that lives OUTSIDE the dialog (the notify stack) but is part
+   * of the modal experience; the pointer guard must not treat it as "outside"
+   * and dismiss the modal when the user taps it.
+   */
+  modalChrome: HTMLElement[];
+  /**
+   * Whether the capture-phase window pointer guard is already installed. Lives
+   * here rather than in a module-local `let` so the per-pack inlined copies
+   * dedupe one window listener between them instead of each adding its own.
+   */
+  pointerGuardInstalled: boolean;
 }
 
 const KEY = Symbol.for("laurigates.comfyModalKit");
@@ -49,10 +61,21 @@ export function getKit(): KitRuntime {
   const g = globalThis as unknown as Record<symbol, KitRuntime | undefined>;
   let kit = g[KEY];
   if (!kit) {
-    kit = { fieldProviders: [], modelPickers: [], activeModal: null, pointerClaim: null };
+    kit = {
+      fieldProviders: [],
+      modelPickers: [],
+      activeModal: null,
+      pointerClaim: null,
+      modalChrome: [],
+      pointerGuardInstalled: false,
+    };
     g[KEY] = kit;
   }
   if (!kit.fieldProviders) kit.fieldProviders = [];
   if (!kit.modelPickers) kit.modelPickers = [];
+  if (!kit.modalChrome) kit.modalChrome = [];
+  // `pointerGuardInstalled` needs no backfill: on an object an older copy built
+  // it reads `undefined`, which is falsy — exactly the right answer ("this
+  // newer copy has not installed the guard yet").
   return kit;
 }

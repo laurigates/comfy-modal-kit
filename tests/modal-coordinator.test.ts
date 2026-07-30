@@ -6,15 +6,21 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+// Internal module: the guard's installed flag lives on the shared runtime, and
+// asserting the dedupe means reading it there.
+import { getKit } from "../src/kit-global.js";
 import {
   type ActiveModalHandle,
   dismissActiveModal,
   getActiveModal,
   installPointerGuard,
   isModalActive,
+  isModalChrome,
   type PointerPatchableWidget,
   patchWidgetPointer,
+  registerModalChrome,
   setActiveModal,
+  unregisterModalChrome,
 } from "../src/modal-coordinator.js";
 
 const handle = (close: () => void, element?: HTMLElement): ActiveModalHandle => ({
@@ -178,5 +184,77 @@ describe("pointer guard (best-effort modal->gesture veto)", () => {
     document.body.appendChild(el);
     el.dispatchEvent(new Event("pointerdown", { bubbles: true }));
     expect(gestureSpy).toHaveBeenCalledTimes(1);
+  });
+
+  describe("modal chrome exemption", () => {
+    // Stands in for the notify stack: kit-owned DOM at body level, OUTSIDE the
+    // dialog, that must not be read as "outside the modal".
+    let toastLike: HTMLElement;
+    let inner: HTMLElement;
+    let dialog: HTMLElement;
+    let close: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      toastLike = document.createElement("div");
+      inner = document.createElement("button");
+      toastLike.appendChild(inner);
+      dialog = document.createElement("div");
+      document.body.append(dialog, toastLike);
+      close = vi.fn();
+    });
+
+    afterEach(() => {
+      unregisterModalChrome(toastLike);
+    });
+
+    test("a pointerdown inside registered chrome neither dismisses nor is vetoed", () => {
+      registerModalChrome(toastLike);
+      setActiveModal(handle(close, dialog));
+
+      inner.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+
+      expect(close).not.toHaveBeenCalled();
+      expect(isModalActive()).toBe(true);
+      // Chrome is an ordinary interactive surface: propagation must NOT stop, or
+      // the toast's own listeners never see the tap.
+      expect(gestureSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("unregistering scopes the exemption — the same tap now dismisses", () => {
+      registerModalChrome(toastLike);
+      unregisterModalChrome(toastLike); // also strips data-cmp-chrome
+      setActiveModal(handle(close, dialog));
+
+      inner.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(gestureSpy).not.toHaveBeenCalled();
+    });
+
+    test("the data-cmp-chrome attribute alone is enough (another kit copy's registry)", () => {
+      // Never registered here — only stamped, as a differently-inlined kit copy
+      // would have left it.
+      toastLike.setAttribute("data-cmp-chrome", "");
+      expect(isModalChrome(inner)).toBe(true);
+      setActiveModal(handle(close, dialog));
+
+      inner.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+
+      expect(close).not.toHaveBeenCalled();
+      expect(isModalActive()).toBe(true);
+    });
+  });
+
+  test("installPointerGuard dedupes through the shared flag (one window listener)", () => {
+    // The flag lives on the shared runtime so per-pack inlined copies install
+    // one guard between them — asserted by watching addEventListener directly,
+    // because a duplicate guard is otherwise invisible (the first call's
+    // stopImmediatePropagation suppresses the second, and dismiss is idempotent).
+    const addSpy = vi.spyOn(window, "addEventListener");
+    installPointerGuard();
+    installPointerGuard();
+    expect(addSpy.mock.calls.filter(([type]) => type === "pointerdown")).toHaveLength(0);
+    expect(getKit().pointerGuardInstalled).toBe(true);
+    addSpy.mockRestore();
   });
 });

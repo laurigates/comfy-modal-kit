@@ -27,9 +27,12 @@ export {
   getActiveModal,
   installPointerGuard,
   isModalActive,
+  isModalChrome,
   type PointerPatchableWidget,
   patchWidgetPointer,
+  registerModalChrome,
   setActiveModal,
+  unregisterModalChrome,
   type WidgetPointerOpener,
   type WidgetPointerPatch,
 } from "./modal-coordinator.js";

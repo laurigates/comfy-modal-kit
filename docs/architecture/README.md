@@ -28,7 +28,8 @@ All shared state lives on **one object** keyed by a well-known Symbol on
 
 ```ts
 const KEY = Symbol.for("laurigates.comfyModalKit");
-// getKit() → { fieldProviders, activeModal, pointerClaim }
+// getKit() → { fieldProviders, modelPickers, activeModal, pointerClaim,
+//              modalChrome, pointerGuardInstalled }
 ```
 
 A module-level `let` would be duplicated once per inlined pack copy — the exact
@@ -93,7 +94,8 @@ and nothing breaks.
 | `isModalActive()` / `getActiveModal()` | Query the shared slot. |
 | `patchWidgetPointer(widget, opener)` | The uniform chain-original-then-consume `onPointerDown` wrapper, with native fallback on error. Returns a `restore()`. |
 | `claimPointer(id)` | Pointer-claim protocol: a gesture pack records that it took a pointer (advisory). |
-| `installPointerGuard()` | Best-effort capture-phase `window` guard (idempotent; no-op outside a browser). |
+| `installPointerGuard()` | Best-effort capture-phase `window` guard (idempotent — the installed flag lives on the shared runtime, so inlined copies install **one** listener between them; no-op outside a browser). |
+| `registerModalChrome(el)` / `unregisterModalChrome(el)` / `isModalChrome(node)` | Kit-owned DOM that lives outside the dialog but must not be treated as "outside the modal". |
 
 `modal-shell.ts` now routes its single-active discipline through the shared
 `activeModal` slot instead of a module-local `let ACTIVE`, so any pack's
@@ -103,6 +105,36 @@ dismiss, ESC, and focus-on-rAF are unchanged.
 ### Active-modal + pointer guard flow
 
 ![Modal coordinator flow](modal-coordinator-flow.svg)
+
+### "Outside the modal" ≠ "outside the dialog element" (modal chrome)
+
+The guard's hit-test is `activeModal.element.contains(target)`, but not all of the
+modal experience lives inside that element. The notify stack
+(`#cmn-notify-container`) is a child of `document.body` — it has to be, to paint
+above the shell (z-index 10000 vs 9999) and to outlive any single modal — so a
+tap on a toast's × read as "outside the modal" and **dismissed the whole modal
+instead of the toast**.
+
+`modal-notify` therefore registers its container as **modal chrome**, and the
+guard returns early (no `stopImmediatePropagation()`, no dismiss) for a
+pointerdown inside registered chrome, so the tap reaches the toast's own
+listeners. Registration also stamps `data-cmp-chrome` on the element: the
+registry is the primary lookup, but a chrome element registered by a
+*differently inlined* kit copy is invisible to this copy's registry, and the
+attribute makes the DOM itself the fallback signal. `unregisterModalChrome`
+removes both, so the shared registry never retains a detached node.
+
+Chrome that renders above a modal also has to be *reachable*: while a modal is
+active, `.cmn-container` gains `cmn-modal-inset` (`top: 64px`), re-evaluated on
+every raise, so the toast stack clears the shell header's `.cmp-close` — which
+otherwise sits directly under the toast's own × in a full-viewport dialog.
+
+> **Mixed kit versions.** An older inlined copy that already installed its own
+> guard leaves `pointerGuardInstalled` unset, so a newer copy adds a second
+> listener. Double-install is harmless (dismiss is idempotent), but the *old*
+> guard has no chrome exemption — on a page where an old-kit pack loads first, a
+> toast tap can still close the modal. Not fixable from the kit; it resolves as
+> packs rebuild.
 
 ### The veto is best-effort
 

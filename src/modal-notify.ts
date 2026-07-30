@@ -229,11 +229,19 @@ function ensureContainer(): HTMLElement {
     c.id = CONTAINER_ID;
     c.className = "cmn-container";
     document.body.appendChild(c);
-    // The stack renders above the modal shell but is a child of body, so the
-    // pointer guard would otherwise read a tap on a toast as "outside the
-    // modal" and dismiss the modal instead of the toast.
-    registerModalChrome(c);
   }
+  // The stack renders above the modal shell but is a child of body, so the
+  // pointer guard would otherwise read a tap on a toast as "outside the modal"
+  // and dismiss the modal instead of the toast.
+  //
+  // Registered on EVERY raise, not just on create: the container we adopt here
+  // may have been built by an inlined kit copy old enough to predate the chrome
+  // registry (<= 0.8.0's ensureContainer only appends). Such a pack raising a
+  // load-time toast without ever opening a shell leaves a container in the DOM
+  // that this copy's guard would then treat as "outside the modal". Registering
+  // unconditionally is free — registerModalChrome de-dupes by identity and
+  // re-stamps the attribute idempotently.
+  registerModalChrome(c);
   return c;
 }
 

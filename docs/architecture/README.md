@@ -124,17 +124,29 @@ registry is the primary lookup, but a chrome element registered by a
 attribute makes the DOM itself the fallback signal. `unregisterModalChrome`
 removes both, so the shared registry never retains a detached node.
 
+Registration happens on **every raise**, not only when the container is created:
+`ensureContainer` may *adopt* a `#cmn-notify-container` that an older inlined copy
+(≤ 0.8.0, which only appended it) left in the DOM, and an unregistered container
+is exactly the DOM this guard would mis-read as "outside the modal".
+`registerModalChrome` de-dupes by identity and re-stamps the attribute, so paying
+it per toast is free.
+
 Chrome that renders above a modal also has to be *reachable*: while a modal is
 active, `.cmn-container` gains `cmn-modal-inset` (`top: 64px`), re-evaluated on
 every raise, so the toast stack clears the shell header's `.cmp-close` — which
 otherwise sits directly under the toast's own × in a full-viewport dialog.
 
-> **Mixed kit versions.** An older inlined copy that already installed its own
-> guard leaves `pointerGuardInstalled` unset, so a newer copy adds a second
-> listener. Double-install is harmless (dismiss is idempotent), but the *old*
-> guard has no chrome exemption — on a page where an old-kit pack loads first, a
-> toast tap can still close the modal. Not fixable from the kit; it resolves as
-> packs rebuild.
+> **Mixed kit versions.** A pre-fix inlined copy gates its guard on a
+> module-local flag, so `pointerGuardInstalled` never stops it and both guards
+> end up on `window`. Double-install is harmless (dismiss is idempotent), but the
+> old guard has no chrome exemption, and this copy's exemption deliberately
+> returns *without* `stopImmediatePropagation()` (so the tap can reach the toast)
+> — which also lets every later window-capture listener run, the old guard
+> included. So the toast tap can still close the modal on **any page where a
+> pre-fix copy is loaded at all, in either load order**: old-first, its guard runs
+> first; new-first, the exemption hands the event straight to it. Not fixable from
+> the kit — it resolves only once *every* consuming pack on the page has bumped
+> the kit, not merely when one has.
 
 ### The veto is best-effort
 

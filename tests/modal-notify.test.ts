@@ -192,4 +192,32 @@ describe("toast vs active modal", () => {
     notify({ severity: "error", summary: "again" });
     expect(isModalChrome(document.getElementById("cmn-notify-container"))).toBe(true);
   });
+
+  test("a container it did not create is still adopted as chrome (regression)", () => {
+    // Registering only on the create branch left one realistic hole: an inlined
+    // kit copy old enough to predate the chrome registry (<= 0.8.0) appends the
+    // container without registering it. A pack on that copy raising a load-time
+    // toast — never opening a shell, so never installing its own guard — leaves
+    // exactly this DOM behind, and THIS copy's guard is then the only listener.
+    const stale = document.createElement("div");
+    stale.id = "cmn-notify-container";
+    stale.className = "cmn-container";
+    document.body.appendChild(stale);
+    expect(stale.hasAttribute("data-cmp-chrome")).toBe(false);
+    expect(isModalChrome(stale)).toBe(false);
+
+    setActiveModal({ element: dialog, close });
+    notify({ severity: "error", summary: "x" });
+
+    // The adopted container, not a second one.
+    expect(document.getElementById("cmn-notify-container")).toBe(stale);
+    expect(stale.hasAttribute("data-cmp-chrome")).toBe(true);
+    expect(isModalChrome(stale)).toBe(true);
+
+    const closeBtn = stale.querySelector<HTMLButtonElement>(".cmn-close");
+    expect(closeBtn).not.toBeNull();
+    closeBtn?.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(close).not.toHaveBeenCalled();
+    expect(isModalActive()).toBe(true);
+  });
 });

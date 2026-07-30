@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.8.0...comfy-modal-kit-v0.8.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **notify:** stop the pointer guard dismissing the modal on a toast tap ([#22](https://github.com/laurigates/comfy-modal-kit/issues/22)) ([77e76f9](https://github.com/laurigates/comfy-modal-kit/commit/77e76f94d07e08a081665315733cf814888ad6ec))
+
 ## [0.8.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.7.1...comfy-modal-kit-v0.8.0) (2026-07-27)
 
 

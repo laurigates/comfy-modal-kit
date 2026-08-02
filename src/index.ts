@@ -5,6 +5,8 @@
 // packs. Consuming packs `bun add @laurigates/comfy-modal-kit` and import from
 // here; their `bun build` inlines the code into their served web/dist bundle.
 
+export { installBackGuard } from "./back-guard.js";
+export { escapeHTML } from "./escape-html.js";
 export {
   type FieldControl,
   type FieldControlContext,
@@ -15,11 +17,19 @@ export {
   resolveFieldProvider,
 } from "./field-registry.js";
 export {
+  type GalleryFile,
+  isValidSort,
+  SORT_OPTIONS,
+  type SortOption,
+  sortFiles,
+} from "./gallery-file.js";
+export {
   FAMILY_MENU_PATH,
   type LauncherFields,
   type LauncherOptions,
   makeLauncher,
 } from "./launcher.js";
+export { installLazyMedia, type LazyMediaOptions } from "./lazy-media.js";
 export {
   type ActiveModalHandle,
   claimPointer,

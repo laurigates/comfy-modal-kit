@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.9.0...comfy-modal-kit-v0.10.0) (2026-08-02)
+
+
+### Features
+
+* **shell:** expose scrollHost and getScrollTop ([#26](https://github.com/laurigates/comfy-modal-kit/issues/26)) ([4ec3795](https://github.com/laurigates/comfy-modal-kit/commit/4ec3795757ad67630c5bc3ddc0ffac156b8ec460))
+
 ## [0.9.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.8.1...comfy-modal-kit-v0.9.0) (2026-08-02)
 
 

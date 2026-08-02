@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.8.1...comfy-modal-kit-v0.9.0) (2026-08-02)
+
+
+### Features
+
+* add gallery-file, lazy-media, back-guard and escape-html helpers ([e9d5a16](https://github.com/laurigates/comfy-modal-kit/commit/e9d5a16b5c3800c226ef0d5c497a56e81ce7968a))
+* gallery-file, lazy-media, back-guard and escape-html helpers ([#24](https://github.com/laurigates/comfy-modal-kit/issues/24)) ([e9d5a16](https://github.com/laurigates/comfy-modal-kit/commit/e9d5a16b5c3800c226ef0d5c497a56e81ce7968a))
+
 ## [0.8.1](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.8.0...comfy-modal-kit-v0.8.1) (2026-07-30)
 
 

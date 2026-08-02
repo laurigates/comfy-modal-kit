@@ -14,7 +14,7 @@ One shared runtime, these surfaces:
 
 | Module | Role |
 |---|---|
-| `src/modal-shell.ts` | Bare modal dialog (backdrop + header/search/body/footer). CSS `.cmp-*`. |
+| `src/modal-shell.ts` | Bare modal dialog (backdrop + header/search/body/footer). CSS `.cmp-*`. Exposes `scrollHost` (the one scroll region) and `getScrollTop()` — see the hard rule below. |
 | `src/modal-fuzzy.ts` | Pure fzf-lite scoring + `highlightMatches`. |
 | `src/modal-notify.ts` | Transient toasts with copy-to-clipboard. CSS `.cmn-*`. Registers its body-level stack as modal chrome (below) and insets it (`cmn-modal-inset`) while a modal is up. |
 | `src/modal-rating.ts` | 0..5 star-rating helpers for the gallery packs. |
@@ -71,6 +71,16 @@ compatibility surface: extend it additively, never re-shape.** See
   the call site knows. **Do not add a default or an ancestor-walk fallback** —
   both packs got this wrong once each, and a helper that guesses hides the third
   occurrence behind a shared abstraction where it is harder to see.
+- **On a close path, read the offset through `getScrollTop()`, never
+  `bodyEl.scrollTop`.** The shell removes the dialog from the document and
+  *then* calls `onClose`, so a consumer remembering the scroll position there is
+  reading a detached element — which every real engine answers with **0**.
+  Measured in comfyui-image-browser: parked at 31185, `scrollTop` read 0, and
+  the browser silently reopened at the top of the list for three releases. The
+  shell keeps a passive mirror that survives the detach; `getScrollTop()` still
+  prefers a live read while attached, because a programmatic write lands before
+  its `scroll` event does. jsdom cannot see any of this — it has no layout and
+  happily reads back whatever you assigned, detached or not.
 - **Release-please owns versioning.** Never hand-edit `CHANGELOG.md`,
   `package.json` `version`, or `.release-please-manifest.json`. `feat:` cuts a
   minor, `fix:` a patch. The publish is OIDC trusted-publishing on release-PR

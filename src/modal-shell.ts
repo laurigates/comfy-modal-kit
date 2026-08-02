@@ -214,11 +214,30 @@ export interface ModalShellController {
   searchEl: HTMLInputElement;
   statusEl: HTMLElement;
   bodyEl: HTMLElement;
+  /**
+   * The shell's one scroll region. Identical to {@link bodyEl} today — it
+   * exists to NAME the contract, so consumers wiring an IntersectionObserver
+   * root or a scroll-restore say what they mean instead of knowing that
+   * `.cmp-body` happens to be the scroller.
+   */
+  scrollHost: HTMLElement;
   footerEl: HTMLElement;
   /** Toggle the body's busy (dimmed, non-interactive) state. */
   setBusy: (b: boolean) => void;
   /** Set the status text shown next to the search input. */
   setStatus: (s: string) => void;
+  /**
+   * The scroll region's current offset, read from a mirror the shell keeps
+   * up to date.
+   *
+   * Prefer this over `bodyEl.scrollTop` on any CLOSE path. The shell removes
+   * the dialog from the document and only THEN calls `onClose`, and a detached
+   * element answers 0 in every real engine — so the obvious one-liner silently
+   * remembers the top of the list instead of where the user was. Measured in
+   * Chromium: parked at 31185, `scrollTop` read 0. The mirror survives the
+   * detach.
+   */
+  getScrollTop: () => number;
   /** Programmatically close this shell. */
   close: () => void;
   /** @internal Keydown handler reference, used for teardown. */
@@ -315,6 +334,9 @@ export function openModalShell(opts: ModalShellOptions = {}): ModalShellControll
       backdrop.remove();
       dialog.remove();
       document.removeEventListener("keydown", onKey, true);
+      // The mirror keeps its last value — that is the whole point, since
+      // onClose below runs against an already-detached dialog.
+      bodyEl.removeEventListener("scroll", onBodyScroll);
     } finally {
       try {
         opts.onClose?.();
@@ -362,6 +384,15 @@ export function openModalShell(opts: ModalShellOptions = {}): ModalShellControll
 
   document.body.append(backdrop, dialog);
 
+  // Mirror of bodyEl.scrollTop, kept fresh so a close-path read still answers
+  // after the dialog is detached (see getScrollTop). Passive: this listener
+  // never blocks scrolling.
+  let liveScrollTop = 0;
+  const onBodyScroll = (): void => {
+    liveScrollTop = bodyEl.scrollTop;
+  };
+  bodyEl.addEventListener("scroll", onBodyScroll, { passive: true });
+
   const controller: ModalShellController = {
     backdrop,
     dialog,
@@ -370,12 +401,21 @@ export function openModalShell(opts: ModalShellOptions = {}): ModalShellControll
     searchEl,
     statusEl,
     bodyEl,
+    scrollHost: bodyEl,
     footerEl,
     setBusy(b: boolean) {
       bodyEl.classList.toggle("is-busy", !!b);
     },
     setStatus(s: string) {
       statusEl.textContent = s || "";
+    },
+    getScrollTop() {
+      // Prefer a live read while still attached — a programmatic scrollTop
+      // write lands before the scroll event does, so the mirror can lag by a
+      // frame. Once detached the element answers 0 and the mirror is the only
+      // truth left.
+      if (bodyEl.isConnected) liveScrollTop = bodyEl.scrollTop;
+      return liveScrollTop;
     },
     close: requestClose,
     _onKey: onKey,

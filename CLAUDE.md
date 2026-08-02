@@ -18,6 +18,10 @@ One shared runtime, these surfaces:
 | `src/modal-fuzzy.ts` | Pure fzf-lite scoring + `highlightMatches`. |
 | `src/modal-notify.ts` | Transient toasts with copy-to-clipboard. CSS `.cmn-*`. Registers its body-level stack as modal chrome (below) and insets it (`cmn-modal-inset`) while a modal is up. |
 | `src/modal-rating.ts` | 0..5 star-rating helpers for the gallery packs. |
+| `src/gallery-file.ts` | The `GalleryFile` listing row the gallery packs share, plus `sortFiles` / `SORT_OPTIONS` / `isValidSort`. Data and comparators only — packs build their own `<select>`. |
+| `src/lazy-media.ts` | `installLazyMedia` — deferred `<img>`/`<video>` loading. **`root` is required**: it must be the element that actually scrolls (see the hard rule below). |
+| `src/back-guard.ts` | `installBackGuard` — the Android/gesture back sentinel. Kit owns the history bookkeeping, the pack's callback owns what "back" means. |
+| `src/escape-html.ts` | `escapeHTML(s)` — the five-entity escape that was vendored in three packs. |
 | `src/field-registry.ts` | Cross-pack registry of enhanced inline field controls (widget → control). |
 | `src/model-picker-registry.ts` | Cross-pack registry of model-file pickers (`folder_paths` category → control). See ADR-0003. |
 | `src/modal-coordinator.ts` | Single active-modal registry + `patchWidgetPointer` + best-effort pointer guard + the **modal-chrome** registry (`registerModalChrome` / `unregisterModalChrome` / `isModalChrome`). |
@@ -55,6 +59,18 @@ compatibility surface: extend it additively, never re-shape.** See
   `data-cmp-chrome` cross-realm fallback and the mixed-kit-version caveat:
   [`docs/architecture/README.md`](docs/architecture/README.md) → *"Outside the
   modal" ≠ "outside the dialog element"*.
+- **`installLazyMedia`'s `root` must be the element that actually scrolls, and
+  stays required.** Rooting on a container with no overflow clip makes the root
+  rectangle that container's *whole bounding box*, so every element reports as
+  intersecting on the first callback and the "lazy" load fires for the entire
+  listing at once. Measured in comfyui-image-browser: 400/400 off-screen cards
+  intersect with the grid as root vs 20/400 with the real scroller — survivable
+  in a folder view of tens of files, an OOM'd tab in a flat view of thousands.
+  The two consuming surfaces genuinely differ (a modal picker's grid sits inside
+  the shell's `.cmp-body`; an inline node grid *is* its own scroller), so only
+  the call site knows. **Do not add a default or an ancestor-walk fallback** —
+  both packs got this wrong once each, and a helper that guesses hides the third
+  occurrence behind a shared abstraction where it is harder to see.
 - **Release-please owns versioning.** Never hand-edit `CHANGELOG.md`,
   `package.json` `version`, or `.release-please-manifest.json`. `feat:` cuts a
   minor, `fix:` a patch. The publish is OIDC trusted-publishing on release-PR

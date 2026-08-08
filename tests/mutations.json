@@ -1,0 +1,48 @@
+{
+  "command": ["bun", "run", "test"],
+  "reporter": "vitest-json",
+  "mutations": [
+    {
+      "label": "hub-button election disabled (every pack would claim its own button)",
+      "file": "src/hub.ts",
+      "before": "if (kit.hubLauncherInstalled) return {};",
+      "after": "if (false) return {};"
+    },
+    {
+      "label": "registry replace becomes append (a re-registering pack duplicates its row)",
+      "file": "src/hub-registry.ts",
+      "before": "list.splice(i, 1, entry);",
+      "after": "list.push(entry);"
+    },
+    {
+      "label": "chooser priority ordering removed",
+      "file": "src/hub-registry.ts",
+      "before": "(b.priority ?? 0) - (a.priority ?? 0)",
+      "after": "0"
+    },
+    {
+      "label": "hubEntries backfill removed (the ADR-0003 undefined.findIndex crash)",
+      "file": "src/kit-global.ts",
+      "before": "if (!kit.hubEntries) kit.hubEntries = [];",
+      "after": "if (false) kit.hubEntries = [];"
+    },
+    {
+      "label": "close-before-act removed (Settings would open behind the z-9998 scrim)",
+      "file": "src/hub.ts",
+      "before": "controller.close(); // synchronous DOM detach — modal-shell.ts:333-335",
+      "after": "void 0; // synchronous DOM detach — modal-shell.ts:333-335"
+    },
+    {
+      "label": "single-entry short-circuit removed (a lone tool would cost an extra tap)",
+      "file": "src/hub.ts",
+      "before": "if (entries.length === 1) {",
+      "after": "if (false) {"
+    },
+    {
+      "label": "CONTROL — comment text only; MUST be MISSED, or this harness is lying",
+      "file": "src/hub.ts",
+      "before": "the split between them is load-bearing",
+      "after": "the split between them is decorative"
+    }
+  ]
+}

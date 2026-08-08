@@ -24,7 +24,21 @@ export {
   sortFiles,
 } from "./gallery-file.js";
 export {
+  HUB_ICON,
+  HUB_LABEL,
+  type HubEntryOptions,
+  installHubButton,
+  makeHubEntry,
+  openTouchToolsHub,
+} from "./hub.js";
+export {
+  getHubEntries,
+  type HubEntry,
+  registerHubEntry,
+} from "./hub-registry.js";
+export {
   FAMILY_MENU_PATH,
+  FAMILY_SETTINGS_CATEGORY,
   type LauncherFields,
   type LauncherOptions,
   makeLauncher,

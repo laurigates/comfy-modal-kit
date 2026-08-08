@@ -27,8 +27,14 @@
  * only when it is still armed, so closing via back (sentinel already consumed)
  * and closing via the ✕ (still armed) both leave history exactly as found.
  * Safe no-op where there is no `window`/`history`.
+ *
+ * Pass `{ pop: false }` when the caller is handing off synchronously to ANOTHER
+ * modal that will push its own sentinel: popping here would queue a traversal
+ * that could land after the new push and eat the new modal's sentinel. The
+ * cost of not popping is one inert history entry — at worst one extra Back
+ * press that no listener handles, which is strictly safer than the race.
  */
-export function installBackGuard(onBack: () => boolean): () => void {
+export function installBackGuard(onBack: () => boolean): (opts?: { pop?: boolean }) => void {
   if (typeof window === "undefined" || typeof history === "undefined") return () => {};
 
   let armed = false;
@@ -39,13 +45,13 @@ export function installBackGuard(onBack: () => boolean): () => void {
     armed = true;
   };
 
-  const dispose = (): void => {
+  const dispose = (opts?: { pop?: boolean }): void => {
     if (disposed) return;
     disposed = true;
     window.removeEventListener("popstate", onPop);
     if (armed) {
       armed = false;
-      history.back();
+      if (opts?.pop !== false) history.back();
     }
   };
 

@@ -26,6 +26,24 @@ import { notify } from "./modal-notify.js";
 /** The family's shared submenu under the app's Extensions menu. */
 export const FAMILY_MENU_PATH: readonly string[] = ["Extensions", "Touch Tools"];
 
+/**
+ * The family's shared top-level settings category — the first element of every
+ * family setting's `category` array, so all of them land under one
+ * `Touch Tools` row in ComfyUI's settings dialog.
+ *
+ * Packs that already depend on the kit should import this. A pack with no other
+ * reason to depend on the kit (a settings-only or gesture-only pack) hard-copies
+ * the literal with a comment pointing here, exactly as `comfyui-touch-shim`
+ * already does for {@link FAMILY_MENU_PATH}.
+ *
+ * NOTE for anyone adding a setting: two settings sharing an identical FULL
+ * `category` array silently collapse into one — `buildTree` reuses the node at
+ * that path and unconditionally overwrites `parent.data` (`treeUtil.ts:24-38`),
+ * so the first setting vanishes from the dialog while its value stays stored.
+ * Give every setting a three-element array with a distinct third element.
+ */
+export const FAMILY_SETTINGS_CATEGORY = "Touch Tools";
+
 const KEBAB_COMMAND_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** Options for {@link makeLauncher}. */
@@ -44,7 +62,17 @@ export interface LauncherOptions {
   failSummary?: string;
   /** Menu placement. Defaults to {@link FAMILY_MENU_PATH}. */
   menuPath?: string[];
-  /** false = no action-bar button; an object overrides its label/tooltip. Defaults to true. */
+  /**
+   * false = no action-bar button; an object overrides its label/tooltip. Defaults to true.
+   *
+   * Family packs should prefer `makeHubEntry` (hub.ts) over calling
+   * `makeLauncher` directly: the family owns exactly ONE action-bar button —
+   * the Touch Tools hub — so a per-pack button is a second one. `makeHubEntry`
+   * passes `actionBar: false` for you and returns the chooser row alongside.
+   * The default here deliberately stays `true`: flipping it would silently
+   * remove the button from any pack that upgrades the kit without adopting the
+   * hub, and would break makeLauncher's documented purity (see the header).
+   */
   actionBar?: boolean | { label?: string; tooltip?: string };
 }
 
@@ -52,7 +80,19 @@ export interface LauncherOptions {
 export interface LauncherFields {
   commands: Array<{ id: string; label: string; icon: string; function: () => void }>;
   menuCommands: Array<{ path: string[]; commands: string[] }>;
-  actionBarButtons?: Array<{ icon: string; label?: string; tooltip?: string; onClick: () => void }>;
+  actionBarButtons?: Array<{
+    icon: string;
+    label?: string;
+    tooltip?: string;
+    /**
+     * Extra CSS classes on the rendered button. A real field on the frontend's
+     * ActionBarButton type (`src/types/comfy.ts:80-83`); `makeLauncher` never
+     * sets it, but `installHubButton` must (see hub.ts — the topbar hard-codes
+     * a 28px height that only an `!important` override can beat).
+     */
+    class?: string;
+    onClick: () => void;
+  }>;
 }
 
 /**

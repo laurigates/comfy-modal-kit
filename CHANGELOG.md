@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.10.0...comfy-modal-kit-v0.11.0) (2026-08-08)
+
+
+### Features
+
+* Touch Tools hub registry, chooser and single action-bar button ([#29](https://github.com/laurigates/comfy-modal-kit/issues/29)) ([e209efc](https://github.com/laurigates/comfy-modal-kit/commit/e209efcb2460c8bbfad165140cb000aac2fb1de2))
+
 ## [0.10.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.9.0...comfy-modal-kit-v0.10.0) (2026-08-02)
 
 

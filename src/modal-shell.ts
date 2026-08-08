@@ -88,8 +88,11 @@ const CSS = `
     color: #aaa;
     border: 1px solid #3a3a44;
     border-radius: 4px;
-    width: 36px;
-    height: 36px;
+    /* 44px, not 36: docs/modal-ux-drift-catalog.md:71 sets the family's D02
+       target at >=44px, and the Touch Tools chooser cannot credibly promise
+       >=44px rows while inheriting a 36px close control. */
+    width: 44px;
+    height: 44px;
     cursor: pointer;
     font-size: 20px;
     line-height: 1;

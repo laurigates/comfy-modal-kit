@@ -16,6 +16,7 @@
 // clobber each other, so extend it additively.
 
 import type { FieldProvider } from "./field-registry.js";
+import type { HubEntry } from "./hub-registry.js";
 import type { ActiveModalHandle } from "./modal-coordinator.js";
 import type { ModelPicker } from "./model-picker-registry.js";
 
@@ -41,6 +42,10 @@ interface KitRuntime {
    * dedupe one window listener between them instead of each adding its own.
    */
   pointerGuardInstalled: boolean;
+  /** Registered Touch Tools hub entries; a re-register by id replaces in place. */
+  hubEntries: HubEntry[];
+  /** Whether some inlined copy has already claimed the single Touch Tools action-bar button. */
+  hubLauncherInstalled: boolean;
 }
 
 const KEY = Symbol.for("laurigates.comfyModalKit");
@@ -68,14 +73,22 @@ export function getKit(): KitRuntime {
       pointerClaim: null,
       modalChrome: [],
       pointerGuardInstalled: false,
+      hubEntries: [],
+      hubLauncherInstalled: false,
     };
     g[KEY] = kit;
   }
   if (!kit.fieldProviders) kit.fieldProviders = [];
   if (!kit.modelPickers) kit.modelPickers = [];
   if (!kit.modalChrome) kit.modalChrome = [];
-  // `pointerGuardInstalled` needs no backfill: on an object an older copy built
-  // it reads `undefined`, which is falsy — exactly the right answer ("this
-  // newer copy has not installed the guard yet").
+  // `hubEntries` DOES need the backfill: whichever pack's inlined copy loads
+  // first CONSTRUCTS this object, and an older copy's constructor has no
+  // `hubEntries` field. Omitting this line reproduces the ADR-0003 crash
+  // verbatim — `.findIndex` on `undefined` in registerHubEntry.
+  if (!kit.hubEntries) kit.hubEntries = [];
+  // `pointerGuardInstalled` and `hubLauncherInstalled` need no backfill: on an
+  // object an older copy built they read `undefined`, which is falsy — exactly
+  // the right answer ("this newer copy has not installed the guard / has not
+  // claimed the hub button yet").
   return kit;
 }

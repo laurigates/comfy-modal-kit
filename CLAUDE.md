@@ -26,7 +26,9 @@ One shared runtime, these surfaces:
 | `src/model-picker-registry.ts` | Cross-pack registry of model-file pickers (`folder_paths` category → control). See ADR-0003. |
 | `src/modal-coordinator.ts` | Single active-modal registry + `patchWidgetPointer` + best-effort pointer guard + the **modal-chrome** registry (`registerModalChrome` / `unregisterModalChrome` / `isModalChrome`). |
 | `src/shell-overlay.ts` | In-dialog confirm/prompt/custom overlays (secondary prompts under single-modal discipline). CSS `.cmp-ov-*`. See ADR-0002. |
-| `src/launcher.ts` | `makeLauncher` + `FAMILY_MENU_PATH` — the family's command/menu/action-bar conventions in code. See ADR-0002. |
+| `src/launcher.ts` | `makeLauncher` + `FAMILY_MENU_PATH` + `FAMILY_SETTINGS_CATEGORY` — the family's command/menu/action-bar/settings conventions in code. See ADR-0002. |
+| `src/hub-registry.ts` | Cross-pack registry of Touch Tools chooser rows. A **list** consumer (every entry renders), so there is no `resolveHubEntry`. Its one contract: an entry's opener must need no node/widget/graph context. |
+| `src/hub.ts` | The family's single action-bar button and the chooser behind it: `makeHubEntry` (per-pack command + menu + row, **no** button), `installHubButton` (page-global election, returns **only** `actionBarButtons` so it is key-disjoint from `makeHubEntry` and safe to spread as a sibling), `openTouchToolsHub`. CSS `.cmk-hub-*`. |
 | `src/widget-button.ts` | `appendButtonWidget` — the Strategy-B non-serialized button-widget safety net. |
 | `src/style-inject.ts` | `ensureStyleOnce(id, css)` — style injection deduped by DOM id (cross-bundle safe). |
 | `src/kit-global.ts` | **Internal.** The `Symbol.for` runtime rendezvous all shared state lives on. |
@@ -81,6 +83,23 @@ compatibility surface: extend it additively, never re-shape.** See
   prefers a live read while attached, because a programmatic write lands before
   its `scroll` event does. jsdom cannot see any of this — it has no layout and
   happily reads back whatever you assigned, detached or not.
+- **`installHubButton()` must keep returning `actionBarButtons` and nothing
+  else, and hub rows must keep registering in the pack's `setup()`.** Packs
+  spread it as a sibling of `makeHubEntry()`'s result, so the moment it also
+  returns `commands`/`menuCommands` the later spread wins those keys: the pack's
+  Extensions-menu row vanishes (`menuItemStore.ts:90-97` filters
+  `menuCommand.commands` against `extension.commands` ids) and a user keybinding
+  on the now-orphaned id is re-added at boot with **no** `isRegistered` gate
+  (`keybindingService.ts:116-124`), squatting its combo and throwing on press
+  (`commandStore.ts:110`). `tests/hub-registry.test.ts` pins the disjointness.
+  Registration in `setup()` (not at module evaluation) is what keeps **disabled**
+  packs out of the chooser — see the header of `src/hub.ts`.
+- **A chooser row must close the chooser BEFORE it acts.** `runRow` disposes the
+  back guard with `{ pop: false }`, calls `controller.close()` synchronously, and
+  only then defers the action by one macrotask. The kit's scrim is `z-index:
+  9998` while PrimeVue is configured at 1800, so acting first would open
+  ComfyUI's own dialogs *behind* our backdrop and the tap would look inert.
+  `tests/hub-chooser.test.ts`'s CLOSE-BEFORE-ACT case is the pin; do not weaken it.
 - **Release-please owns versioning.** Never hand-edit `CHANGELOG.md`,
   `package.json` `version`, or `.release-please-manifest.json`. `feat:` cuts a
   minor, `fix:` a patch. The publish is OIDC trusted-publishing on release-PR
@@ -99,6 +118,15 @@ bun run knip        # dead-code / unused-dependency check
 
 Run the full gate before a PR: `bun run typecheck && bun run build &&
 bun run test && bunx biome check . && bun run knip`. CI mirrors it.
+
+`tests/mutations.json` drives `just mutation-check comfy-modal-kit` from the
+workspace root — it breaks each pinned mechanism in turn and reports which test
+went red. It also carries a deliberate **CONTROL** mutation (a comment edit) that
+the suite must MISS: a harness reporting everything as CAUGHT is
+indistinguishable from a broken one. Because a MISSED mutation is how the script
+reports a finding, the recipe exits **1** on a healthy run — read the report, not
+the exit code. Add a mutation whenever you add a regression assertion
+(`.claude/rules/modal-pack-test-tiers.md`).
 
 ## Diagrams
 

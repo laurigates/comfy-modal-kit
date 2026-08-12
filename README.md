@@ -29,6 +29,20 @@ ESM + type declarations.
   active-modal registry shared across the inlined per-pack copies, the uniform
   `patchWidgetPointer` chain-then-consume contract, and a best-effort
   modal→gesture pointer guard.
+- **`safe-view`** — the family's sensitive-content filter, shared by the gallery
+  packs so the same file is never blurred in one grid and plain in another. A
+  user keyword list is matched as **whole tokens** against a file's name, every
+  folder above it, and its XMP keyword tags (so `nsfw` matches `output/nsfw/…`
+  while `ass` does *not* match `assets/`); matches get a CSS blur and a solid
+  spoiler block over the name, with a per-card reveal. Ships the settings
+  definitions themselves (`safeViewSettings()`), which both packs spread — they
+  register the same frozen ids, so ComfyUI stores **one** value and the
+  preference is cross-pack and cross-device for free.
+
+  > **This is discretion, not access control.** The blur is CSS — one devtools
+  > override away from gone — and the blurred file is still downloaded and still
+  > sits in the browser cache. It defeats someone glancing over your shoulder,
+  > not someone with your keyboard.
 
 Both new surfaces converge the inlined per-pack copies on a single runtime
 rendezvous (`Symbol.for`) — the rationale is

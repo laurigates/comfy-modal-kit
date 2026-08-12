@@ -27,7 +27,8 @@ One shared runtime, these surfaces:
 | `src/modal-coordinator.ts` | Single active-modal registry + `patchWidgetPointer` + best-effort pointer guard + the **modal-chrome** registry (`registerModalChrome` / `unregisterModalChrome` / `isModalChrome`). |
 | `src/shell-overlay.ts` | In-dialog confirm/prompt/custom overlays (secondary prompts under single-modal discipline). CSS `.cmp-ov-*`. See ADR-0002. |
 | `src/launcher.ts` | `makeLauncher` + `FAMILY_MENU_PATH` + `FAMILY_SETTINGS_CATEGORY` — the family's command/menu/action-bar/settings conventions in code. See ADR-0002. |
-| `src/hub-registry.ts` | Cross-pack registry of Touch Tools chooser rows. A **list** consumer (every entry renders), so there is no `resolveHubEntry`. Its one contract: an entry's opener must need no node/widget/graph context. |
+| `src/hub-registry.ts` | Cross-pack registry of Touch Tools chooser rows. A **list** consumer (every entry renders), so there is no `resolveHubEntry`. Its one contract: an entry's opener must need no node/widget/graph context. Also holds the **separate** `HubToggle` registry — kept out of `getHubEntries()` on purpose, so a toggle can never make `entries.length === 2` and cost a single-pack user the one-tap short-circuit. |
+| `src/safe-view.ts` | The family's sensitive-content filter: the frozen `SAFE_VIEW_SETTINGS` ids, the shared `safeViewSettings()` array both gallery packs spread, keyword parsing, the **token** matcher (`tokenize` / `isSensitive`), the per-session `RevealSet`, the blur/spoiler CSS and DOM helpers (`setBlurred` / `setSpoilered` / `makeRevealButton`), and the cross-pack change bus. CSS `.cmk-sv-*`. **Discretion, not access control** — the blur is CSS and the bytes are still downloaded. |
 | `src/hub.ts` | The family's single action-bar button and the chooser behind it: `makeHubEntry` (per-pack command + menu + row, **no** button), `installHubButton` (page-global election, returns **only** `actionBarButtons` so it is key-disjoint from `makeHubEntry` and safe to spread as a sibling), `openTouchToolsHub`. CSS `.cmk-hub-*`. |
 | `src/widget-button.ts` | `appendButtonWidget` — the Strategy-B non-serialized button-widget safety net. |
 | `src/style-inject.ts` | `ensureStyleOnce(id, css)` — style injection deduped by DOM id (cross-bundle safe). |
@@ -100,6 +101,27 @@ compatibility surface: extend it additively, never re-shape.** See
   9998` while PrimeVue is configured at 1800, so acting first would open
   ComfyUI's own dialogs *behind* our backdrop and the tap would look inert.
   `tests/hub-chooser.test.ts`'s CLOSE-BEFORE-ACT case is the pin; do not weaken it.
+  **One documented exemption: a TOGGLE row (`HubToggle`) opens nothing**, so the
+  reason does not apply to it — it flips its boolean and repaints itself in
+  place with the chooser still up, which is also the better interaction (the
+  user flipping a filter is the user who wants to see it flip). It repaints from
+  `get()` rather than from `!previous`, so a write ComfyUI's setting store
+  refuses or coerces shows as unchanged instead of as a flip that never
+  happened. `tests/hub-toggle.test.ts` pins both. A row that opens *anything* —
+  a dialog, a modal, a native picker — is not a toggle and must go through
+  `runRow`.
+- **A toggle is not a `HubEntry`, and the separate registry is what enforces
+  it.** `installHubButton`'s single-entry short-circuit opens the lone
+  registered tool directly instead of showing a one-row menu, so registering a
+  family-wide toggle as an ordinary entry would make `getHubEntries().length ===
+  2` for every user with exactly one pack installed and silently take that tap
+  back. `getHubEntries()` therefore excludes toggles **by construction**, not by
+  care; `tests/hub-toggle.test.ts` asserts the one-tap launch survives a
+  registered toggle. Both registries sort through the single `byPriority`
+  comparator — writing the expression twice drifts *and* makes the mutation
+  table's anchor for it ambiguous, which disarms that mutation silently (this
+  happened while Safe View was being written; `just mutation-check` reported
+  `BAD ANCHOR (2 matches)` and is the only reason it was noticed).
 - **Release-please owns versioning.** Never hand-edit `CHANGELOG.md`,
   `package.json` `version`, or `.release-please-manifest.json`. `feat:` cuts a
   minor, `fix:` a patch. The publish is OIDC trusted-publishing on release-PR

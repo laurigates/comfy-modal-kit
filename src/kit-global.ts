@@ -16,7 +16,7 @@
 // clobber each other, so extend it additively.
 
 import type { FieldProvider } from "./field-registry.js";
-import type { HubEntry } from "./hub-registry.js";
+import type { HubEntry, HubToggle } from "./hub-registry.js";
 import type { ActiveModalHandle } from "./modal-coordinator.js";
 import type { ModelPicker } from "./model-picker-registry.js";
 
@@ -46,6 +46,19 @@ interface KitRuntime {
   hubEntries: HubEntry[];
   /** Whether some inlined copy has already claimed the single Touch Tools action-bar button. */
   hubLauncherInstalled: boolean;
+  /**
+   * Registered Touch Tools toggle rows; a re-register by id replaces in place.
+   * Deliberately NOT merged into `hubEntries` — see hub-registry.ts for why the
+   * single-entry short-circuit must keep counting tools only.
+   */
+  hubToggles: HubToggle[];
+  /**
+   * Safe View change subscribers. Shared rather than per-bundle because only
+   * ONE pack's settings registration actually takes effect (a duplicate setting
+   * id is skipped), so the pack whose `onChange` fires is often not the pack
+   * whose grid needs repainting.
+   */
+  safeViewListeners: Array<() => void>;
 }
 
 const KEY = Symbol.for("laurigates.comfyModalKit");
@@ -75,6 +88,8 @@ export function getKit(): KitRuntime {
       pointerGuardInstalled: false,
       hubEntries: [],
       hubLauncherInstalled: false,
+      hubToggles: [],
+      safeViewListeners: [],
     };
     g[KEY] = kit;
   }
@@ -86,6 +101,13 @@ export function getKit(): KitRuntime {
   // `hubEntries` field. Omitting this line reproduces the ADR-0003 crash
   // verbatim — `.findIndex` on `undefined` in registerHubEntry.
   if (!kit.hubEntries) kit.hubEntries = [];
+  // Same backfill, same reason: an older inlined copy CONSTRUCTED this object
+  // without these fields, and `registerHubToggle` / `onSafeViewChange` would
+  // then call `.findIndex` / `.push` on `undefined` — the ADR-0003 crash again,
+  // this time triggered merely by installing a pack that predates Safe View
+  // alongside one that does not.
+  if (!kit.hubToggles) kit.hubToggles = [];
+  if (!kit.safeViewListeners) kit.safeViewListeners = [];
   // `pointerGuardInstalled` and `hubLauncherInstalled` need no backfill: on an
   // object an older copy built they read `undefined`, which is falsy — exactly
   // the right answer ("this newer copy has not installed the guard / has not

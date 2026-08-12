@@ -15,10 +15,10 @@
       "after": "list.push(entry);"
     },
     {
-      "label": "chooser priority ordering removed",
+      "label": "chooser priority ordering removed (both registries share one comparator)",
       "file": "src/hub-registry.ts",
-      "before": "(b.priority ?? 0) - (a.priority ?? 0)",
-      "after": "0"
+      "before": "  return (b.priority ?? 0) - (a.priority ?? 0);",
+      "after": "  return 0;"
     },
     {
       "label": "hubEntries backfill removed (the ADR-0003 undefined.findIndex crash)",
@@ -37,6 +37,54 @@
       "file": "src/hub.ts",
       "before": "if (entries.length === 1) {",
       "after": "if (false) {"
+    },
+    {
+      "label": "safe-view: token matching becomes SUBSTRING matching (blurs assets/ and classic.png)",
+      "file": "src/safe-view.ts",
+      "before": "if (haystack.has(kw)) return true;",
+      "after": "if ([...haystack].some((t) => t.includes(kw))) return true;"
+    },
+    {
+      "label": "safe-view: an unscanned file fails OPEN (shows what the prompt tier was meant to hide)",
+      "file": "src/safe-view.ts",
+      "before": "if (target.promptMatch === \"unscanned\") return true;",
+      "after": "if (false) return true;"
+    },
+    {
+      "label": "safe-view: a deliberately cleared keyword box snaps back to the default (unclearable)",
+      "file": "src/safe-view.ts",
+      "before": "keywords: rawKeywords === undefined ? SAFE_VIEW_DEFAULTS.keywords : parseKeywords(rawKeywords),",
+      "after": "keywords: !rawKeywords ? SAFE_VIEW_DEFAULTS.keywords : parseKeywords(rawKeywords),"
+    },
+    {
+      "label": "safe-view: the blur class is never applied (thumbnails render in the clear)",
+      "file": "src/safe-view.ts",
+      "before": "el.classList.toggle(SAFE_VIEW_BLUR_CLASS, blurred);",
+      "after": "void blurred;"
+    },
+    {
+      "label": "safe-view: the title is BLANKED instead of removed (name leaks via native tooltip)",
+      "file": "src/safe-view.ts",
+      "before": "el.removeAttribute(\"title\");",
+      "after": "el.setAttribute(\"title\", \"\");"
+    },
+    {
+      "label": "safe-view: the reveal tap stops suppressing the card's own click (reveal also opens)",
+      "file": "src/safe-view.ts",
+      "before": "e.stopPropagation();",
+      "after": "void 0;"
+    },
+    {
+      "label": "hub toggles: registry replace becomes append (both packs => two Safe View rows)",
+      "file": "src/hub-registry.ts",
+      "before": "list.splice(i, 1, toggle);",
+      "after": "list.push(toggle);"
+    },
+    {
+      "label": "hub toggles: the row stops flipping (set is no longer the negation of get)",
+      "file": "src/hub.ts",
+      "before": "toggle.set(!toggle.get());",
+      "after": "toggle.set(true);"
     },
     {
       "label": "CONTROL — comment text only; MUST be MISSED, or this harness is lying",

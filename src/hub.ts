@@ -50,7 +50,7 @@
 // `.cmk-hub-row`.
 
 import { installBackGuard } from "./back-guard.js";
-import { getHubEntries, type HubEntry } from "./hub-registry.js";
+import { getHubEntries, getHubToggles, type HubEntry } from "./hub-registry.js";
 import { getKit } from "./kit-global.js";
 import type { LauncherFields, LauncherOptions } from "./launcher.js";
 import { makeLauncher } from "./launcher.js";
@@ -121,6 +121,20 @@ const HUB_CSS = `
     height: 1px;
     background: #2a2a32;
     margin: 8px 4px;
+}
+.cmk-hub-state {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #2a2a32;
+    color: #9a9aa4;
+}
+.cmk-hub-row[aria-checked="true"] .cmk-hub-state {
+    background: #24406b;
+    color: #9ec6ff;
 }
 .cmk-hub-empty {
     color: #9a9aa4;
@@ -335,6 +349,57 @@ export function openTouchToolsHub(): ModalShellController {
   for (const entry of entries) {
     const row = makeRow(entry.icon, entry.label, entry.description);
     row.addEventListener("click", () => runRow(entry.open));
+    list.append(row);
+  }
+
+  /**
+   * Toggle rows, BELOW the tools and deliberately not going through `runRow`.
+   *
+   * `runRow`'s close-before-act ordering exists because a row that opens
+   * ComfyUI's own dialog would otherwise open it behind our z-9998 scrim. A
+   * toggle opens nothing, so the reason does not apply — and closing the
+   * chooser on every flip would be the worse interaction, since the user
+   * flipping a filter is precisely the user who wants to see it flip. It
+   * repaints itself in place instead, re-reading `get()` rather than assuming
+   * the write took (the value round-trips through ComfyUI's setting store, and
+   * a rejected or coerced write must show as unchanged, not as flipped).
+   */
+  for (const toggle of getHubToggles()) {
+    const row = makeRow(toggle.icon, toggle.label, toggle.description);
+    row.setAttribute("role", "switch");
+    const state = document.createElement("span");
+    state.className = "cmk-hub-state";
+    row.append(state);
+
+    const paint = (): void => {
+      let on = false;
+      try {
+        on = toggle.get();
+      } catch (e) {
+        console.error(`[comfy-modal-kit] hub toggle "${toggle.id}" get failed`, e);
+      }
+      row.setAttribute("aria-checked", on ? "true" : "false");
+      state.textContent = on ? "On" : "Off";
+    };
+    paint();
+
+    row.addEventListener("click", () => {
+      try {
+        toggle.set(!toggle.get());
+      } catch (e) {
+        console.error(`[comfy-modal-kit] hub toggle "${toggle.id}" set failed`, e);
+        try {
+          notify({
+            severity: "error",
+            summary: `Could not change ${toggle.label}`,
+            detail: String(e),
+          });
+        } catch (n) {
+          console.warn("[comfy-modal-kit] notify failed", n);
+        }
+      }
+      paint();
+    });
     list.append(row);
   }
 

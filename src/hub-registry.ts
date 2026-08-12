@@ -69,5 +69,78 @@ export function registerHubEntry(entry: HubEntry): void {
  * tie-break depend on how many times the chooser had been opened.
  */
 export function getHubEntries(): readonly HubEntry[] {
-  return [...getKit().hubEntries].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+  return [...getKit().hubEntries].sort(byPriority);
+}
+
+/**
+ * The chooser's one ordering rule, shared by both registries: priority
+ * descending, ties keeping registration order (`Array.prototype.sort` is stable
+ * in ES2019+). Deliberately ONE function rather than the same expression
+ * written twice — a duplicated comparator drifts, and it also makes the
+ * mutation table's anchor for this rule ambiguous, which silently disarms it.
+ */
+function byPriority(a: { priority?: number }, b: { priority?: number }): number {
+  return (b.priority ?? 0) - (a.priority ?? 0);
+}
+
+// ---------------------------------------------------------------------------
+// Toggles — a SEPARATE registry, and the separation is the point
+// ---------------------------------------------------------------------------
+//
+// A chooser row that flips a family-wide preference (Safe View) is not a tool,
+// and must not be counted as one. `installHubButton`'s single-entry
+// short-circuit opens the lone registered tool directly rather than costing a
+// tap on a one-row menu (hub.ts) — so registering a toggle as an ordinary
+// HubEntry would make `length === 2` for every single-pack user and silently
+// take that tap back. Toggles therefore live in their own list and
+// `getHubEntries()` is unchanged by construction, not by care.
+//
+// The other half of the split is behavioural. A chooser row must close the
+// chooser BEFORE it acts (hub.ts's `runRow`), because the kit's scrim is
+// z-9998 while PrimeVue dialogs sit at 1800, so acting first opens them behind
+// our own backdrop. A toggle opens nothing at all, so that rule does not apply
+// to it: it flips the boolean and repaints itself in place with the chooser
+// still up — which is also the better interaction, since flipping a filter and
+// being thrown out of the menu is a worse answer than seeing it flip.
+
+/** One toggle row in the Touch Tools chooser. */
+export interface HubToggle {
+  /** Kebab id, e.g. `"safe-view.toggle"`. */
+  id: string;
+  /** Row title. */
+  label: string;
+  /** PrimeIcons class ("pi pi-*"). */
+  icon: string;
+  /** One-line row subtitle. */
+  description?: string;
+  /** Higher sorts first. Ties keep registration order. Defaults to 0. */
+  priority?: number;
+  /**
+   * Current state, read at RENDER time (and again after each flip) rather than
+   * captured at registration — the value lives in ComfyUI's setting store and
+   * can change from the settings dialog, another pack, or another device.
+   */
+  get: () => boolean;
+  /** Flip it. The chooser re-reads {@link get} afterwards and repaints in place. */
+  set: (next: boolean) => void;
+}
+
+/**
+ * Register a toggle row. Idempotent by `id` — a second pack registering the
+ * same toggle replaces it in place rather than adding a duplicate row, which is
+ * what lets both gallery packs call `registerSafeViewHubToggle()` blindly.
+ */
+export function registerHubToggle(toggle: HubToggle): void {
+  const list = getKit().hubToggles;
+  const i = list.findIndex((t) => t.id === toggle.id);
+  if (i >= 0) {
+    list.splice(i, 1, toggle);
+  } else {
+    list.push(toggle);
+  }
+}
+
+/** The registered toggles, priority descending then registration order. */
+export function getHubToggles(): readonly HubToggle[] {
+  return [...getKit().hubToggles].sort(byPriority);
 }

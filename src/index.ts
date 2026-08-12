@@ -33,8 +33,11 @@ export {
 } from "./hub.js";
 export {
   getHubEntries,
+  getHubToggles,
   type HubEntry,
+  type HubToggle,
   registerHubEntry,
+  registerHubToggle,
 } from "./hub-registry.js";
 export {
   FAMILY_MENU_PATH,
@@ -102,6 +105,38 @@ export {
   registerModelPicker,
   resolveModelPicker,
 } from "./model-picker-registry.js";
+export {
+  ensureSafeViewStyle,
+  isSafeViewActive,
+  isSensitive,
+  makeRevealButton,
+  makeRevealSet,
+  notifySafeViewChange,
+  onSafeViewChange,
+  type PromptVerdict,
+  parseKeywords,
+  type RevealButtonOptions,
+  type RevealSet,
+  readSafeViewConfig,
+  registerSafeViewHubToggle,
+  SAFE_VIEW_BLUR_CLASS,
+  SAFE_VIEW_DEFAULT_KEYWORDS,
+  SAFE_VIEW_DEFAULTS,
+  SAFE_VIEW_GLYPH_OFF,
+  SAFE_VIEW_GLYPH_ON,
+  SAFE_VIEW_SETTINGS,
+  SAFE_VIEW_SPOILER_CLASS,
+  type SafeViewConfig,
+  type SafeViewSettingHost,
+  type SafeViewSettingParam,
+  type SafeViewTarget,
+  safeViewSettingHost,
+  safeViewSettings,
+  setBlurred,
+  setSpoilered,
+  toggleSafeView,
+  tokenize,
+} from "./safe-view.js";
 export {
   type ConfirmInShellOptions,
   confirmInShell,

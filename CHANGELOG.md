@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.11.0...comfy-modal-kit-v0.12.0) (2026-08-12)
+
+
+### Features
+
+* Safe View — a shared sensitive-content filter, and hub toggle rows ([#31](https://github.com/laurigates/comfy-modal-kit/issues/31)) ([8b31429](https://github.com/laurigates/comfy-modal-kit/commit/8b3142937300fff81fc10145977a0410883bbb9c))
+
 ## [0.11.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.10.0...comfy-modal-kit-v0.11.0) (2026-08-08)
 
 

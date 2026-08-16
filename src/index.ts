@@ -138,6 +138,15 @@ export {
   tokenize,
 } from "./safe-view.js";
 export {
+  createScrollMemory,
+  installScrollRestore,
+  NATIVE_SCROLL_KEYS,
+  SCROLL_RESTORE_FRAMES,
+  type ScrollMemory,
+  type ScrollRestoreOptions,
+  type ScrollRestorer,
+} from "./scroll-restore.js";
+export {
   type ConfirmInShellOptions,
   confirmInShell,
   openShellOverlay,

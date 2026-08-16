@@ -87,6 +87,72 @@
       "after": "toggle.set(true);"
     },
     {
+      "label": "scroll-restore: current() reads the ELEMENT when detached (the close path stores 0)",
+      "file": "src/scroll-restore.ts",
+      "before": "    if (host.isConnected) liveScrollTop = host.scrollTop;\n    return liveScrollTop;",
+      "after": "    return host.scrollTop;"
+    },
+    {
+      "label": "scroll-restore: set() trusts its argument instead of reading back (a clamp goes unseen)",
+      "file": "src/scroll-restore.ts",
+      "before": "    host.scrollTop = top;\n    liveScrollTop = host.scrollTop;",
+      "after": "    host.scrollTop = top;\n    liveScrollTop = top;"
+    },
+    {
+      "label": "scroll-restore: the re-assert loop never starts (one write, clamped by the layout in force)",
+      "file": "src/scroll-restore.ts",
+      "before": "    if (target <= 0) return;",
+      "after": "    if (true) return;"
+    },
+    {
+      "label": "scroll-restore: the TOP gets defended too (a new search/sort fights the user)",
+      "file": "src/scroll-restore.ts",
+      "before": "    if (target <= 0) return;",
+      "after": "    if (false) return;"
+    },
+    {
+      "label": "scroll-restore: a pending restore ignores the user's gesture",
+      "file": "src/scroll-restore.ts",
+      "before": "      if (userTookOver || !host.isConnected) return;",
+      "after": "      if (!host.isConnected) return;"
+    },
+    {
+      "label": "scroll-restore: a gesture only FLAGS, leaving one frame to fire against it",
+      "file": "src/scroll-restore.ts",
+      "before": "    userTookOver = true;\n    cancel();",
+      "after": "    userTookOver = true;"
+    },
+    {
+      "label": "scroll-restore: gesture listeners drop capture (a card's stopPropagation hides the flick)",
+      "file": "src/scroll-restore.ts",
+      "before": "host.addEventListener(ev, yieldScroller, { passive: true, capture: true });",
+      "after": "host.addEventListener(ev, yieldScroller, { passive: true });"
+    },
+    {
+      "label": "scroll-restore: Space joins the scroll keys (disarms a restore on a key that moves nothing)",
+      "file": "src/scroll-restore.ts",
+      "before": "  \"End\",\n]);",
+      "after": "  \"End\",\n  \" \",\n]);"
+    },
+    {
+      "label": "scroll-restore: typing in the search field counts as a scroll gesture",
+      "file": "src/scroll-restore.ts",
+      "before": "if (!NATIVE_SCROLL_KEYS.has(key) || isTyping()) return;",
+      "after": "if (!NATIVE_SCROLL_KEYS.has(key)) return;"
+    },
+    {
+      "label": "scroll-restore: a new restore does not re-arm (one flick disables it for the session)",
+      "file": "src/scroll-restore.ts",
+      "before": "    cancel();\n    userTookOver = false;",
+      "after": "    cancel();"
+    },
+    {
+      "label": "scroll-restore: dispose() leaks the scroll listener onto a detached host",
+      "file": "src/scroll-restore.ts",
+      "before": "      host.removeEventListener(\"scroll\", onScroll);",
+      "after": "      void 0;"
+    },
+    {
       "label": "CONTROL — comment text only; MUST be MISSED, or this harness is lying",
       "file": "src/hub.ts",
       "before": "the split between them is load-bearing",

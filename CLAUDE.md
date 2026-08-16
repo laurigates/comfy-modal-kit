@@ -20,6 +20,7 @@ One shared runtime, these surfaces:
 | `src/modal-rating.ts` | 0..5 star-rating helpers for the gallery packs. |
 | `src/gallery-file.ts` | The `GalleryFile` listing row the gallery packs share, plus `sortFiles` / `SORT_OPTIONS` / `isValidSort`. Data and comparators only — packs build their own `<select>`. |
 | `src/lazy-media.ts` | `installLazyMedia` — deferred `<img>`/`<video>` loading. **`root` is required**: it must be the element that actually scrolls (see the hard rule below). |
+| `src/scroll-restore.ts` | `installScrollRestore` + `createScrollMemory` — putting a scroller back where the user left it and making it STICK (detach-safe mirror, bounded re-assert loop, gesture stand-down), plus the per-location offset map. **`host` is required**, same law as `installLazyMedia`'s `root`. |
 | `src/back-guard.ts` | `installBackGuard` — the Android/gesture back sentinel. Kit owns the history bookkeeping, the pack's callback owns what "back" means. |
 | `src/escape-html.ts` | `escapeHTML(s)` — the five-entity escape that was vendored in three packs. |
 | `src/field-registry.ts` | Cross-pack registry of enhanced inline field controls (widget → control). |
@@ -84,6 +85,26 @@ compatibility surface: extend it additively, never re-shape.** See
   prefers a live read while attached, because a programmatic write lands before
   its `scroll` event does. jsdom cannot see any of this — it has no layout and
   happily reads back whatever you assigned, detached or not.
+- **Restoring an offset is `installScrollRestore`, never a bare
+  `scrollTop = n`.** The one-liner is wrong in four measured ways, and a pack
+  that reinvents it gets some subset right: (1) the close-path read above;
+  (2) `scrollTop = n` **clamps at the instant of assignment**, so one write is
+  only as good as the layout in force — a grid of lazy thumbnails has not
+  reached its final height yet (measured: 162370 requested, 62370 kept);
+  (3) iOS momentum keeps decelerating after the finger is up (defensive and
+  **unverified** — every browser suite behind this module is Chromium-only);
+  (4) a restore that outlives the user's next gesture *swallows* it, not merely
+  delays it (measured: `End` inside the window left the offset pinned across 8
+  samples spanning ~360 ms). Hence: synchronous first write, bounded re-assert
+  loop, stand down on pointer/wheel/touch or a native scroll key outside a text
+  field, and `dispose()` on close so nothing outlives the modal. Restore
+  **before** installing a lazy-media observer, so its first pass is computed
+  against the final viewport. `createScrollMemory()` is the per-location half —
+  hold it at MODULE scope (that is what makes reopening resume in place) and
+  key it on every dimension that changes the LIST: root, folder, view mode,
+  media filter. jsdom can assert the bookkeeping and nothing else;
+  `tests/scroll-restore.test.ts` says so in its header and simulates the engine
+  behaviours explicitly rather than assuming them.
 - **`installHubButton()` must keep returning `actionBarButtons` and nothing
   else, and hub rows must keep registering in the pack's `setup()`.** Packs
   spread it as a sibling of `makeHubEntry()`'s result, so the moment it also

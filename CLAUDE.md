@@ -18,7 +18,7 @@ One shared runtime, these surfaces:
 | `src/modal-fuzzy.ts` | Pure fzf-lite scoring + `highlightMatches`. |
 | `src/modal-notify.ts` | Transient toasts with copy-to-clipboard. CSS `.cmn-*`. Registers its body-level stack as modal chrome (below) and insets it (`cmn-modal-inset`) while a modal is up. |
 | `src/modal-rating.ts` | 0..5 star-rating helpers for the gallery packs. |
-| `src/gallery-file.ts` | The `GalleryFile` listing row the gallery packs share, plus `sortFiles` / `SORT_OPTIONS` / `isValidSort`. Data and comparators only — packs build their own `<select>`. |
+| `src/gallery-file.ts` | The gallery packs' shared listing layer, data and pure functions only — packs build their own markup. The `GalleryFile` row plus `sortFiles` / `SORT_OPTIONS` / `isValidSort`; the `IMG_EXTS` / `VIDEO_EXTS` media families and `SANDBOXED_TYPES`; `joinAbs`; the metadata display order (`META_FIELDS` / `metaRows` / `metaClipboardText`); and `createViewStore`, the flat-view preference **namespaced per pack**. Nothing that fetches lives here — see the header for what was deliberately left in the packs. |
 | `src/lazy-media.ts` | `installLazyMedia` — deferred `<img>`/`<video>` loading. **`root` is required**: it must be the element that actually scrolls (see the hard rule below). |
 | `src/scroll-restore.ts` | `installScrollRestore` + `createScrollMemory` — putting a scroller back where the user left it and making it STICK (detach-safe mirror, bounded re-assert loop, gesture stand-down), plus the per-location offset map. **`host` is required**, same law as `installLazyMedia`'s `root`. |
 | `src/back-guard.ts` | `installBackGuard` — the Android/gesture back sentinel. Kit owns the history bookkeeping, the pack's callback owns what "back" means. |
@@ -29,7 +29,7 @@ One shared runtime, these surfaces:
 | `src/shell-overlay.ts` | In-dialog confirm/prompt/custom overlays (secondary prompts under single-modal discipline). CSS `.cmp-ov-*`. See ADR-0002. |
 | `src/launcher.ts` | `makeLauncher` + `FAMILY_MENU_PATH` + `FAMILY_SETTINGS_CATEGORY` — the family's command/menu/action-bar/settings conventions in code. See ADR-0002. |
 | `src/hub-registry.ts` | Cross-pack registry of Touch Tools chooser rows. A **list** consumer (every entry renders), so there is no `resolveHubEntry`. Its one contract: an entry's opener must need no node/widget/graph context. Also holds the **separate** `HubToggle` registry — kept out of `getHubEntries()` on purpose, so a toggle can never make `entries.length === 2` and cost a single-pack user the one-tap short-circuit. |
-| `src/safe-view.ts` | The family's sensitive-content filter: the frozen `SAFE_VIEW_SETTINGS` ids, the shared `safeViewSettings()` array both gallery packs spread, keyword parsing, the **token** matcher (`tokenize` / `isSensitive`), the per-session `RevealSet`, the blur/spoiler CSS and DOM helpers (`setBlurred` / `setSpoilered` / `makeRevealButton`), and the cross-pack change bus. CSS `.cmk-sv-*`. **Discretion, not access control** — the blur is CSS and the bytes are still downloaded. |
+| `src/safe-view.ts` | The family's sensitive-content filter: the frozen `SAFE_VIEW_SETTINGS` ids, the shared `safeViewSettings()` array both gallery packs spread, keyword parsing, the **token** matcher (`tokenize` / `isSensitive`), the per-session `RevealSet`, the blur/spoiler CSS and DOM helpers (`setBlurred` / `setSpoilered` / `makeRevealButton`), `sensitiveKeyword` (which keyword the packs' 🙈 control writes — the user's first, never a hidden default), and the cross-pack change bus. CSS `.cmk-sv-*`. **Discretion, not access control** — the blur is CSS and the bytes are still downloaded. |
 | `src/hub.ts` | The family's single action-bar button and the chooser behind it: `makeHubEntry` (per-pack command + menu + row, **no** button), `installHubButton` (page-global election, returns **only** `actionBarButtons` so it is key-disjoint from `makeHubEntry` and safe to spread as a sibling), `openTouchToolsHub`. CSS `.cmk-hub-*`. |
 | `src/widget-button.ts` | `appendButtonWidget` — the Strategy-B non-serialized button-widget safety net. |
 | `src/style-inject.ts` | `ensureStyleOnce(id, css)` — style injection deduped by DOM id (cross-bundle safe). |
@@ -143,6 +143,21 @@ compatibility surface: extend it additively, never re-shape.** See
   table's anchor for it ambiguous, which disarms that mutation silently (this
   happened while Safe View was being written; `just mutation-check` reported
   `BAD ANCHOR (2 matches)` and is the only reason it was noticed).
+- **A duplicated helper crosses into the kit only once both packs' copies are
+  ALREADY equivalent, and anything that genuinely differs stays a parameter.**
+  Diff the copies comment-stripped before lifting either one: an extraction that
+  picks a side silently reverses whichever pack's decision it dropped, and
+  because it lands as "de-duplication" nobody reviews it as a behaviour change.
+  The gallery listing layer (`gallery-file.ts`) went through that survey —
+  `fetchBasePaths`/`fetchMetadata` were left behind because comfyui-image-browser
+  passes `{ cache: "no-cache" }` and comfyui-gallery-loader does not, and
+  `safe-tag.ts`'s `tagRequestBody` / `markSensitiveHTML` are diverged ON PURPOSE
+  (image-browser has no `type: "path"` arm; its ADR-0002 says a tag write is a
+  write). Where the difference is only a name — a storage namespace, a route, a
+  CSS prefix — take it as an argument rather than baking one pack's value in:
+  `createViewStore(namespace)` exists because a hard-coded key would have
+  orphaned the other pack's stored preference on adoption, with the UI looking
+  fine. `tests/gallery-view-store.test.ts` pins that both ways.
 - **Release-please owns versioning.** Never hand-edit `CHANGELOG.md`,
   `package.json` `version`, or `.release-please-manifest.json`. `feat:` cuts a
   minor, `fix:` a patch. The publish is OIDC trusted-publishing on release-PR
@@ -154,13 +169,20 @@ compatibility surface: extend it additively, never re-shape.** See
 bun install
 bun run typecheck   # tsc --noEmit, strict
 bun run build       # bundled ESM (dist/index.js) + declarations
-bun run test        # vitest (node + per-file jsdom)
+bun run test        # vitest (node + per-file `// @vitest-environment jsdom`)
 bunx biome check .  # lint + format
 bun run knip        # dead-code / unused-dependency check
 ```
 
 Run the full gate before a PR: `bun run typecheck && bun run build &&
 bun run test && bunx biome check . && bun run knip`. CI mirrors it.
+
+`vitest.config.js` loads `tests/setup-jsdom.ts` for every file. It only fires in
+the jsdom ones, and only on Node 22+: Node defines its own global `localStorage`
+accessor that reads `undefined` without `--localstorage-file`, and vitest skips
+populating jsdom's real Storage over a name already on `globalThis` — so without
+the shim any jsdom test touching storage dies on the first access. The same shim
+already ships in `comfyui-gallery-loader`, which hit it first.
 
 `tests/mutations.json` drives `just mutation-check comfy-modal-kit` from the
 workspace root — it breaks each pinned mechanism in turn and reports which test

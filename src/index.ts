@@ -17,11 +17,24 @@ export {
   resolveFieldProvider,
 } from "./field-registry.js";
 export {
+  createViewStore,
   type GalleryFile,
+  IMG_EXTS,
   isValidSort,
+  joinAbs,
+  META_FIELDS,
+  type MetaField,
+  type MetaRow,
+  metaClipboardText,
+  metaRows,
+  SANDBOXED_TYPES,
+  type SavedView,
   SORT_OPTIONS,
   type SortOption,
   sortFiles,
+  VIDEO_EXTS,
+  type ViewMode,
+  type ViewStore,
 } from "./gallery-file.js";
 export {
   HUB_ICON,
@@ -132,6 +145,7 @@ export {
   type SafeViewTarget,
   safeViewSettingHost,
   safeViewSettings,
+  sensitiveKeyword,
   setBlurred,
   setSpoilered,
   toggleSafeView,

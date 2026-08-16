@@ -21,11 +21,13 @@ import {
   onSafeViewChange,
   parseKeywords,
   readSafeViewConfig,
+  SAFE_VIEW_DEFAULT_KEYWORDS,
   SAFE_VIEW_DEFAULTS,
   SAFE_VIEW_SETTINGS,
   type SafeViewConfig,
   type SafeViewSettingHost,
   safeViewSettings,
+  sensitiveKeyword,
   toggleSafeView,
   tokenize,
 } from "../src/safe-view.js";
@@ -206,6 +208,33 @@ describe("readSafeViewConfig", () => {
   test("a non-boolean stored value falls back rather than coercing", () => {
     const host = fakeHost({ [SAFE_VIEW_SETTINGS.enabled]: "yes" });
     expect(readSafeViewConfig(host).enabled).toBe(SAFE_VIEW_DEFAULTS.enabled);
+  });
+});
+
+describe("sensitiveKeyword", () => {
+  test("writes the FIRST keyword the user configured", () => {
+    // Lifted from comfyui-gallery-loader/tests/js/safe-tag.test.js, which
+    // covered the pack's hand-written copy. Not a packaged constant: the filter
+    // matches the user's own list, so any other choice could write a mark their
+    // filter does not honour.
+    expect(sensitiveKeyword(cfg({ keywords: ["private", "nsfw"] }))).toBe("private");
+  });
+
+  test("is null for an empty keyword list — no hidden default", () => {
+    // Two-sided with the case above, in the same shape: an implementation
+    // hard-wired to `return null` passes this and fails that one, and one
+    // hard-wired to SAFE_VIEW_DEFAULT_KEYWORDS passes neither.
+    expect(sensitiveKeyword(cfg({ keywords: [] }))).toBe(null);
+    expect(sensitiveKeyword(cfg({ keywords: [] }))).not.toBe(SAFE_VIEW_DEFAULT_KEYWORDS);
+  });
+
+  test("reads the order parseKeywords preserved, which is the whole justification", () => {
+    // The pack copies took "the first entry" on faith. Here the guarantee it
+    // rests on is kit-side, so assert the pair end to end rather than the
+    // indexing alone.
+    const keywords = parseKeywords("Private, NSFW  boudoir");
+    expect(keywords).toEqual(["private", "nsfw", "boudoir"]);
+    expect(sensitiveKeyword(cfg({ keywords }))).toBe("private");
   });
 });
 

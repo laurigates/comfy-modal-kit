@@ -256,6 +256,40 @@ export function isSafeViewActive(cfg: SafeViewConfig = readSafeViewConfig()): bo
   return cfg.enabled && cfg.keywords.length > 0;
 }
 
+/**
+ * The keyword the packs' 🙈 "mark sensitive" control writes into a file's
+ * `dc:subject`: THE FIRST ONE THE USER CONFIGURED.
+ *
+ * There is deliberately NO HIDDEN DEFAULT. The filter matches the user's own
+ * keyword list, so writing anything else — including the packaged
+ * {@link SAFE_VIEW_DEFAULT_KEYWORDS} — produces a file that says "marked" and
+ * is not hidden, which is the one outcome a discretion feature must never have.
+ *
+ * An EMPTY LIST returns `null`, and the caller must then not offer the control
+ * at all rather than fall back to something. "Nothing is filtered" and "mark
+ * this as filtered" are incoherent together; the honest UI is no button.
+ *
+ * The whole justification for "the first entry" is that {@link parseKeywords}
+ * PRESERVES THE ORDER the user typed, so the first entry is the keyword they
+ * named first — and that guarantee is kit-side, which is why this function
+ * belongs here rather than in each pack. It lived as two hand-written copies in
+ * `comfyui-image-browser/src/safe-tag.ts` and
+ * `comfyui-gallery-loader/src/safe-tag.ts`, which write over the SAME FILES ON
+ * DISK: had they ever disagreed, a tap in one pack would mark a file the other
+ * pack's filter did not honour, and the failure is silent and asymmetric.
+ * See laurigates/comfy-modal-kit#33.
+ *
+ * The REST of each pack's `safe-tag.ts` stays per-pack and must not follow this
+ * one in: the route URL, the CSS class prefix and the address shape genuinely
+ * differ, and `tagRequestBody` / `markSensitiveHTML` have DELIBERATELY diverged
+ * (image-browser dropped the `type: "path"` arm, because a tag write is a write
+ * and `/image_browser/tag` rejects `type=path` — its ADR-0002). Unifying those
+ * would silently reverse a considered decision.
+ */
+export function sensitiveKeyword(cfg: SafeViewConfig): string | null {
+  return cfg.keywords.length ? (cfg.keywords[0] as string) : null;
+}
+
 // ---------------------------------------------------------------------------
 // Matching
 // ---------------------------------------------------------------------------

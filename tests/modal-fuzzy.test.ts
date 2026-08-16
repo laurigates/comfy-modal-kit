@@ -1,9 +1,8 @@
-// modal-fuzzy.test.ts — coverage for fuzzyScore + fuzzyRank.
+// modal-fuzzy.test.ts — the pure half of src/modal-fuzzy.ts: fuzzyScore and
+// fuzzyRank, in the node environment.
 //
-// highlightMatches is deferred: it returns a DocumentFragment and requires a
-// DOM. Vitest's default `node` environment has no DOM. Switching to `jsdom`
-// would add a heavyweight dev dependency for one helper; revisit if we later
-// pull modal-shell DOM helpers under coverage.
+// `highlightMatches` builds DOM and is covered directly in
+// tests/modal-fuzzy-dom.test.ts (jsdom).
 
 import { describe, expect, test } from "vitest";
 

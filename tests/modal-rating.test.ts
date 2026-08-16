@@ -1,9 +1,8 @@
-// modal-rating.test.ts — pure helpers from src/modal-rating.ts.
+// modal-rating.test.ts — the pure helpers from src/modal-rating.ts, in the node
+// environment.
 //
-// applyStars needs a DOM and is left to the consuming packs' smoke matrices,
-// consistent with the highlightMatches coverage note in modal-fuzzy.test.ts.
-// postRating is fetch-glue over ratingRequestBody; the body builder is the
-// tested surface.
+// `applyStars` (DOM) and `postRating` (fetch) are covered directly in
+// tests/modal-rating-dom.test.ts (jsdom).
 
 import { describe, expect, test } from "vitest";
 

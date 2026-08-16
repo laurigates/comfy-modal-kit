@@ -153,6 +153,126 @@
       "after": "      void 0;"
     },
     {
+      "label": "safe-view: sensitiveKeyword falls back to the packaged default (writes a keyword the user's filter does not honour)",
+      "file": "src/safe-view.ts",
+      "before": "  return cfg.keywords.length ? (cfg.keywords[0] as string) : null;",
+      "after": "  return cfg.keywords.length ? (cfg.keywords[0] as string) : SAFE_VIEW_DEFAULT_KEYWORDS;"
+    },
+    {
+      "label": "safe-view: sensitiveKeyword writes the LAST keyword (parseKeywords' order stops being load-bearing)",
+      "file": "src/safe-view.ts",
+      "before": "return cfg.keywords.length ? (cfg.keywords[0] as string) : null;",
+      "after": "return cfg.keywords.length ? (cfg.keywords[cfg.keywords.length - 1] as string) : null;"
+    },
+    {
+      "label": "gallery-file: .gif joins VIDEO_EXTS (every animated thumbnail becomes a <video>)",
+      "file": "src/gallery-file.ts",
+      "before": "  \".mpeg\",\n]);",
+      "after": "  \".mpeg\",\n  \".gif\",\n]);"
+    },
+    {
+      "label": "gallery-file: SANDBOXED_TYPES admits the browse-only path root (ships write controls the server 400s)",
+      "file": "src/gallery-file.ts",
+      "before": "export const SANDBOXED_TYPES: readonly string[] = [\"input\", \"output\", \"temp\"];",
+      "after": "export const SANDBOXED_TYPES: readonly string[] = [\"input\", \"output\", \"temp\", \"path\"];"
+    },
+    {
+      "label": "gallery-file: joinAbs stops stripping a trailing slash (doubled separator in every ?path= URL)",
+      "file": "src/gallery-file.ts",
+      "before": "  const d = (dir || \"/\").replace(/\\/+$/, \"\");",
+      "after": "  const d = dir || \"/\";"
+    },
+    {
+      "label": "gallery-file: metaRows walks META_FIELDS backwards (display order stops being fixed)",
+      "file": "src/gallery-file.ts",
+      "before": "  for (const { key, label } of META_FIELDS) {",
+      "after": "  for (const { key, label } of [...META_FIELDS].reverse()) {"
+    },
+    {
+      "label": "gallery-file: metaRows drops FALSY values (a seed of 0 vanishes from the overlay)",
+      "file": "src/gallery-file.ts",
+      "before": "    if (v === undefined || v === null) continue;",
+      "after": "    if (!v) continue;"
+    },
+    {
+      "label": "gallery-file: metaRows keeps whitespace-only values (a bare 'Negative:' row whose Copy copies nothing)",
+      "file": "src/gallery-file.ts",
+      "before": "    if (!value.trim()) continue;",
+      "after": "    if (false) continue;"
+    },
+    {
+      "label": "gallery-file: createViewStore hard-codes one pack's key (the other pack's stored preference is orphaned)",
+      "file": "src/gallery-file.ts",
+      "before": "  const viewKey = `${namespace}:view`;",
+      "after": "  const viewKey = \"comfyui-gallery-loader:view\";"
+    },
+    {
+      "label": "gallery-file: the view whitelist goes truthy (a stale value reaches the listing as flat)",
+      "file": "src/gallery-file.ts",
+      "before": "          mode: localStorage.getItem(viewKey) === \"flat\" ? \"flat\" : \"folder\",",
+      "after": "          mode: localStorage.getItem(viewKey) ? \"flat\" : \"folder\","
+    },
+    {
+      "label": "gallery-file: recovery stops rewriting the preference (every open recovers again, flat unreachable)",
+      "file": "src/gallery-file.ts",
+      "before": "          localStorage.setItem(viewKey, \"folder\");",
+      "after": "          void viewKey;"
+    },
+    {
+      "label": "gallery-file: a throwing storage read escapes the store (private mode takes the modal down)",
+      "file": "src/gallery-file.ts",
+      "before": "        // Private mode / disabled storage — non-fatal.\n        return { mode: \"folder\", recovered: false };",
+      "after": "        // Private mode / disabled storage — non-fatal.\n        throw new Error(\"storage unavailable\");"
+    },
+    {
+      "label": "modal-fuzzy: highlightMatches CLAMPS out-of-range indices (marks a character the user never searched for)",
+      "file": "src/modal-fuzzy.ts",
+      "before": "  const set = new Set(matchIndices || []);",
+      "after": "  const set = new Set((matchIndices || []).map((i) => Math.min(Math.max(i, 0), target.length - 1)));"
+    },
+    {
+      "label": "modal-fuzzy: the highlight class is renamed (every pack's .cmp-match styling stops applying)",
+      "file": "src/modal-fuzzy.ts",
+      "before": "      m.className = \"cmp-match\";",
+      "after": "      m.className = \"cmp-hit\";"
+    },
+    {
+      "label": "modal-rating: applyStars only ADDS is-on (a failed write's rollback leaves the optimistic paint)",
+      "file": "src/modal-rating.ts",
+      "before": "    s.classList.toggle(\"is-on\", Number(s.dataset.val) <= r);",
+      "after": "    if (Number(s.dataset.val) <= r) s.classList.add(\"is-on\");"
+    },
+    {
+      "label": "modal-rating: applyStars writes the RAW rating to data-rating (attribute and lit stars drift)",
+      "file": "src/modal-rating.ts",
+      "before": "  row.dataset.rating = String(r);",
+      "after": "  row.dataset.rating = String(rating);"
+    },
+    {
+      "label": "modal-rating: applyStars queries the DOCUMENT (one card's rating repaints the whole grid)",
+      "file": "src/modal-rating.ts",
+      "before": "  for (const s of row.querySelectorAll<HTMLElement>(\"[data-val]\")) {",
+      "after": "  for (const s of document.querySelectorAll<HTMLElement>(\"[data-val]\")) {"
+    },
+    {
+      "label": "modal-rating: postRating treats {ok:false} as success (the caller never rolls back)",
+      "file": "src/modal-rating.ts",
+      "before": "  if (!data.ok) throw new Error(data.error || \"rating failed\");",
+      "after": "  if (false) throw new Error(data.error || \"rating failed\");"
+    },
+    {
+      "label": "modal-rating: postRating echoes the sent rating instead of the server's",
+      "file": "src/modal-rating.ts",
+      "before": "  return typeof data.rating === \"number\" ? data.rating : rating;",
+      "after": "  return rating;"
+    },
+    {
+      "label": "modal-rating: postRating ignores the HTTP status (a 500 resolves)",
+      "file": "src/modal-rating.ts",
+      "before": "  if (!res.ok) throw new Error(`HTTP ${res.status}`);",
+      "after": "  if (false) throw new Error(`HTTP ${res.status}`);"
+    },
+    {
       "label": "CONTROL — comment text only; MUST be MISSED, or this harness is lying",
       "file": "src/hub.ts",
       "before": "the split between them is load-bearing",

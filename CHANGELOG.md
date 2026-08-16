@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.12.0...comfy-modal-kit-v0.13.0) (2026-08-16)
+
+
+### Features
+
+* **scroll-restore:** shared scroll memory + restore loop for the gallery packs ([#34](https://github.com/laurigates/comfy-modal-kit/issues/34)) ([ff97f14](https://github.com/laurigates/comfy-modal-kit/commit/ff97f14a24bc6244e0e55ef1980393ed8aa9945a))
+
 ## [0.12.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.11.0...comfy-modal-kit-v0.12.0) (2026-08-12)
 
 

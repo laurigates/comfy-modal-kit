@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.13.0...comfy-modal-kit-v0.14.0) (2026-08-16)
+
+
+### Features
+
+* **gallery:** promote sensitiveKeyword and the listing layer's pure half ([eefe653](https://github.com/laurigates/comfy-modal-kit/commit/eefe653312793951aaeeb6254e5d54b168d283a7))
+* **gallery:** promote sensitiveKeyword and the listing layer's pure half into the kit ([#36](https://github.com/laurigates/comfy-modal-kit/issues/36)) ([eefe653](https://github.com/laurigates/comfy-modal-kit/commit/eefe653312793951aaeeb6254e5d54b168d283a7))
+
 ## [0.13.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.12.0...comfy-modal-kit-v0.13.0) (2026-08-16)
 
 

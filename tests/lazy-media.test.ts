@@ -146,12 +146,19 @@ describe("installLazyMedia", () => {
     expect(io.observed[0]?.tagName).toBe("VIDEO");
   });
 
-  test("an <img> gets no preload attribute (only media elements are promoted)", () => {
+  test("an <img> gets no preload (only media elements are promoted)", () => {
+    // HTMLImageElement has no `preload` IDL attribute, so a write to `.preload`
+    // on an <img> lands as an expando property and never reaches the attribute.
+    // `hasAttribute("preload")` alone therefore passes whether or not the guard
+    // exists; the `in` check is what sees the write.
     const { scroller, grid } = mount(`<img data-src="a.png">`);
     installLazyMedia(grid, { root: scroller });
     const img = grid.querySelector("img") as HTMLImageElement;
+    expect("preload" in img).toBe(false);
     (observers[0] as FakeObserver).fire([img]);
+    expect("preload" in img).toBe(false);
     expect(img.hasAttribute("preload")).toBe(false);
+    expect(img.getAttribute("src")).toBe("a.png");
   });
 
   test("ignores non-intersecting entries", () => {

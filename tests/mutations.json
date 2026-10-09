@@ -192,6 +192,13 @@
       "expect": ["upgrades an audio element's preload to metadata"]
     },
     {
+      "label": "lazy-media: IMG joins MEDIA_TAGS (an <img> takes a preload write it has no attribute for)",
+      "file": "src/lazy-media.ts",
+      "before": "const MEDIA_TAGS: ReadonlySet<string> = new Set([\"VIDEO\", \"AUDIO\"]);",
+      "after": "const MEDIA_TAGS: ReadonlySet<string> = new Set([\"VIDEO\", \"AUDIO\", \"IMG\"]);",
+      "expect": ["an <img> gets no preload"]
+    },
+    {
       "label": "lazy-media: default selector widened to audio (every call site's observed set changes on a kit bump)",
       "file": "src/lazy-media.ts",
       "before": "const DEFAULT_SELECTOR = \"img[data-src], video[data-src]\";",

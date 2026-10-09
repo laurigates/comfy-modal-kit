@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.14.0...comfy-modal-kit-v0.15.0) (2026-10-09)
+
+
+### Features
+
+* **media:** export AUDIO_EXTS and promote lazy &lt;audio&gt; preload ([#40](https://github.com/laurigates/comfy-modal-kit/issues/40)) ([0ef1fe9](https://github.com/laurigates/comfy-modal-kit/commit/0ef1fe9c1612288e608fadbdd384163e29e6b429))
+
 ## [0.14.0](https://github.com/laurigates/comfy-modal-kit/compare/comfy-modal-kit-v0.13.0...comfy-modal-kit-v0.14.0) (2026-08-16)
 
 

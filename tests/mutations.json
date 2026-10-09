@@ -171,6 +171,34 @@
       "after": "  \".mpeg\",\n  \".gif\",\n]);"
     },
     {
+      "label": "gallery-file: .mp4 joins AUDIO_EXTS (every clip in the listing dispatches as an audio glyph)",
+      "file": "src/gallery-file.ts",
+      "before": "  \".aac\",\n]);",
+      "after": "  \".aac\",\n  \".mp4\",\n]);",
+      "expect": ["AUDIO_EXTS is disjoint from both"]
+    },
+    {
+      "label": "gallery-file: AUDIO_EXTS drops .opus (the kit set narrows below the pack backend's, silently)",
+      "file": "src/gallery-file.ts",
+      "before": "  \".opus\",\n",
+      "after": "",
+      "expect": ["carries exactly the extensions both packs shipped"]
+    },
+    {
+      "label": "lazy-media: preload promotion back to VIDEO-only (a lazy <audio> reports no duration until play)",
+      "file": "src/lazy-media.ts",
+      "before": "const MEDIA_TAGS: ReadonlySet<string> = new Set([\"VIDEO\", \"AUDIO\"]);",
+      "after": "const MEDIA_TAGS: ReadonlySet<string> = new Set([\"VIDEO\"]);",
+      "expect": ["upgrades an audio element's preload to metadata"]
+    },
+    {
+      "label": "lazy-media: default selector widened to audio (every call site's observed set changes on a kit bump)",
+      "file": "src/lazy-media.ts",
+      "before": "const DEFAULT_SELECTOR = \"img[data-src], video[data-src]\";",
+      "after": "const DEFAULT_SELECTOR = \"img[data-src], video[data-src], audio[data-src]\";",
+      "expect": ["the default selector does NOT observe audio"]
+    },
+    {
       "label": "gallery-file: SANDBOXED_TYPES admits the browse-only path root (ships write controls the server 400s)",
       "file": "src/gallery-file.ts",
       "before": "export const SANDBOXED_TYPES: readonly string[] = [\"input\", \"output\", \"temp\"];",

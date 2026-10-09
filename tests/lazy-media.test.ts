@@ -116,6 +116,44 @@ describe("installLazyMedia", () => {
     expect(vid.getAttribute("src")).toBe("c.mp4");
   });
 
+  test("upgrades an audio element's preload to metadata on intersection too", () => {
+    // An <audio> left at preload="none" reports no duration until play, so a
+    // lazily-loaded player would show 0:00 until tapped. Passed through an
+    // explicit selector, because the default deliberately does not match audio
+    // (see the next test).
+    const { scroller, grid } = mount(`<audio data-src="d.mp3" preload="none"></audio>`);
+    installLazyMedia(grid, { root: scroller, selector: "audio[data-src]" });
+    const aud = grid.querySelector("audio") as HTMLAudioElement;
+
+    expect(aud.preload).toBe("none");
+    (observers[0] as FakeObserver).fire([aud]);
+    expect(aud.preload).toBe("metadata");
+    expect(aud.getAttribute("src")).toBe("d.mp3");
+    expect(aud.hasAttribute("data-src")).toBe(false);
+  });
+
+  test("the default selector does NOT observe audio — callers opt in", () => {
+    // Deliberate: widening the default would change what every existing call
+    // site observes on a kit bump, with nothing at the call site to review.
+    // No pack mounts a lazily-loaded <audio> today; one that does passes
+    // `selector`. Two-sided so a default that dropped video also fails here.
+    const { scroller, grid } = mount(
+      `<video data-src="c.mp4"></video><audio data-src="d.mp3" preload="none"></audio>`,
+    );
+    installLazyMedia(grid, { root: scroller });
+    const io = observers[0] as FakeObserver;
+    expect(io.observed).toHaveLength(1);
+    expect(io.observed[0]?.tagName).toBe("VIDEO");
+  });
+
+  test("an <img> gets no preload attribute (only media elements are promoted)", () => {
+    const { scroller, grid } = mount(`<img data-src="a.png">`);
+    installLazyMedia(grid, { root: scroller });
+    const img = grid.querySelector("img") as HTMLImageElement;
+    (observers[0] as FakeObserver).fire([img]);
+    expect(img.hasAttribute("preload")).toBe(false);
+  });
+
   test("ignores non-intersecting entries", () => {
     const { scroller, grid } = mount(`<img data-src="a.png">`);
     installLazyMedia(grid, { root: scroller });

@@ -12,6 +12,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  AUDIO_EXTS,
   type GalleryFile,
   IMG_EXTS,
   isValidSort,
@@ -143,7 +144,7 @@ describe("sortFiles", () => {
   });
 });
 
-describe("IMG_EXTS / VIDEO_EXTS", () => {
+describe("IMG_EXTS / VIDEO_EXTS / AUDIO_EXTS", () => {
   test("the two families are disjoint, and .gif is an IMAGE", () => {
     // Two-sided on the one entry that could plausibly go either way: .gif is in
     // VHS's video list and in ours, and the grid renders it as a still <img>.
@@ -156,6 +157,18 @@ describe("IMG_EXTS / VIDEO_EXTS", () => {
     for (const ext of IMG_EXTS) expect(VIDEO_EXTS.has(ext)).toBe(false);
   });
 
+  test("AUDIO_EXTS is disjoint from both, and .mp4 stays a VIDEO", () => {
+    // .mp4 can carry audio only, and VHS's audio combo lists it — but card-kind
+    // dispatch keys on the extension, so it may sit in exactly one family.
+    // In AUDIO_EXTS it would turn every clip in the listing into a glyph.
+    expect(AUDIO_EXTS.has(".mp4")).toBe(false);
+    expect(VIDEO_EXTS.has(".mp4")).toBe(true);
+    for (const ext of AUDIO_EXTS) {
+      expect(IMG_EXTS.has(ext)).toBe(false);
+      expect(VIDEO_EXTS.has(ext)).toBe(false);
+    }
+  });
+
   test("carries exactly the extensions both packs shipped", () => {
     // The literal sets, not a count: a count passes against a set that swapped
     // one extension for another, which is precisely the drift this extraction
@@ -166,13 +179,21 @@ describe("IMG_EXTS / VIDEO_EXTS", () => {
     expect([...VIDEO_EXTS].sort()).toEqual(
       [".mp4", ".webm", ".mov", ".mkv", ".avi", ".m4v", ".mpg", ".mpeg"].sort(),
     );
+    // comfyui-gallery-loader's set (gallery_loader.py + src/image-picker.ts),
+    // derived from VHS audio_extensions, VHS_LoadAudio's vhs_path_extensions
+    // and core LoadAudio's mimetype filter. Its backend clamps /list to its
+    // own copy, so a kit set wider than the pack's lists nothing for the extra
+    // extension, silently.
+    expect([...AUDIO_EXTS].sort()).toEqual(
+      [".mp3", ".wav", ".ogg", ".oga", ".opus", ".flac", ".m4a", ".aac"].sort(),
+    );
   });
 
   test("every entry is lowercase with a leading dot", () => {
     // The packs lowercase the file's extension before the lookup, so an entry
     // that lost its dot or carried a capital would simply never match — a
     // silent hole rather than an error.
-    for (const ext of [...IMG_EXTS, ...VIDEO_EXTS]) {
+    for (const ext of [...IMG_EXTS, ...VIDEO_EXTS, ...AUDIO_EXTS]) {
       expect(ext).toBe(ext.toLowerCase());
       expect(ext.startsWith(".")).toBe(true);
     }

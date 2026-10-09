@@ -1,4 +1,4 @@
-// lazy-media.ts — defer <img>/<video> loading until the element scrolls near
+// lazy-media.ts — defer <img>/<video>/<audio> loading until the element scrolls near
 // the viewport, via one IntersectionObserver per render.
 //
 // Three packs carried a copy of this (comfyui-image-browser, and both of
@@ -33,18 +33,32 @@ export interface LazyMediaOptions {
   root: Element;
   /** Margin around the root when computing intersections. Default "300px". */
   rootMargin?: string;
-  /** What to observe. Default `"img[data-src], video[data-src]"`. */
+  /**
+   * What to observe. Default `"img[data-src], video[data-src]"`.
+   *
+   * `<audio>` is NOT in the default on purpose: widening it would change what
+   * every existing call site observes on a kit bump, with nothing at the call
+   * site to review. A pack that mounts a lazily-loaded `<audio>` passes e.g.
+   * `"img[data-src], video[data-src], audio[data-src]"` and gets the same
+   * `preload` promotion as a video.
+   */
   selector?: string;
 }
 
 const DEFAULT_SELECTOR = "img[data-src], video[data-src]";
 
+// Media elements whose `preload` is promoted on intersection. Keyed on tagName
+// rather than `instanceof HTMLMediaElement`, which is false for an element from
+// another realm.
+const MEDIA_TAGS: ReadonlySet<string> = new Set(["VIDEO", "AUDIO"]);
+
 /**
  * Observe `data-src` media under `container` and promote each to `src` as it
  * comes within `rootMargin` of `root`, then stop observing it.
  *
- * A `<video>` is additionally switched from `preload="none"` to
- * `preload="metadata"` at that point, so an off-screen clip costs nothing.
+ * A `<video>` or `<audio>` is additionally switched from `preload="none"` to
+ * `preload="metadata"` at that point, so an off-screen clip costs nothing and
+ * an on-screen one can report its duration before it is played.
  *
  * Returns a disposer. **Call it before the next render** (or on teardown) —
  * dropping the reference without disposing leaks an observer that still
@@ -62,10 +76,10 @@ export function installLazyMedia(container: Element, opts: LazyMediaOptions): ()
     (entries) => {
       for (const e of entries) {
         if (!e.isIntersecting) continue;
-        const el = e.target as HTMLImageElement | HTMLVideoElement;
+        const el = e.target as HTMLImageElement | HTMLMediaElement;
         const src = (el as HTMLElement).dataset.src;
         if (src) {
-          if (el.tagName === "VIDEO") (el as HTMLVideoElement).preload = "metadata";
+          if (MEDIA_TAGS.has(el.tagName)) (el as HTMLMediaElement).preload = "metadata";
           el.src = src;
           el.removeAttribute("data-src");
         }

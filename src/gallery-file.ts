@@ -1,5 +1,5 @@
 // gallery-file.ts — the listing-row shape the gallery packs share, plus the
-// sort comparators, the media-extension sets, the address helper, the metadata
+// sort comparators, the media-extension sets (image / video / audio), the address helper, the metadata
 // display order and the flat-view preference store built on it.
 //
 // comfyui-gallery-loader (modal picker + inline node grid) and
@@ -163,6 +163,34 @@ export const VIDEO_EXTS: ReadonlySet<string> = new Set([
   ".m4v",
   ".mpg",
   ".mpeg",
+]);
+
+/**
+ * Extensions the packs treat as audio. Lowercased, leading dot.
+ *
+ * Derived from the nodes that ask for audio rather than guessed: VHS's
+ * `audio_extensions`, `VHS_LoadAudio`'s `vhs_path_extensions`, and the
+ * mimetype-audio extensions core `LoadAudio`'s combo picks up via
+ * `folder_paths.filter_files_content_types`. Lifted from comfyui-gallery-loader,
+ * whose frontend and backend each carried this exact set.
+ *
+ * `.mp4` is deliberately NOT here even though it can carry audio only and VHS's
+ * audio combo lists it: card-kind dispatch keys on the extension, so it stays in
+ * {@link VIDEO_EXTS} alone. A pack whose node offers `.mp4` for audio keeps its
+ * own per-node list for that dropdown rather than widening this set.
+ *
+ * As with the other two families, a pack's backend clamps its `/list` to its
+ * own copy, so an extension added here and not there lists nothing — silently.
+ */
+export const AUDIO_EXTS: ReadonlySet<string> = new Set([
+  ".mp3",
+  ".wav",
+  ".ogg",
+  ".oga",
+  ".opus",
+  ".flac",
+  ".m4a",
+  ".aac",
 ]);
 
 /**

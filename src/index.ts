@@ -17,6 +17,7 @@ export {
   resolveFieldProvider,
 } from "./field-registry.js";
 export {
+  AUDIO_EXTS,
   createViewStore,
   type GalleryFile,
   IMG_EXTS,

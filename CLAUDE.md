@@ -193,6 +193,24 @@ reports a finding, the recipe exits **1** on a healthy run — read the report, 
 the exit code. Add a mutation whenever you add a regression assertion
 (`.claude/rules/modal-pack-test-tiers.md`).
 
+## ComfyUI compat workflow
+
+`.github/workflows/comfy-compat.yml` is a **reusable workflow for the packs**,
+not CI for this package: it runs a calling pack against real ComfyUI (types /
+backend / browser tiers), keeps one `comfy-compat` issue in sync, and can
+draft a fix PR. Its logic is the scripts in `scripts/comfy-compat/` (bash +
+`smoke.cjs`), which the workflow checks out at `job.workflow_sha` — so a
+change to a script and to the YAML that calls it ship together, and
+`scripts/comfy-compat/run-local.sh` reproduces one target locally with the
+same scripts. Lint with `actionlint` (`.github/actionlint.yaml` silences only
+its not-yet-known `job.workflow_*` properties) and `shellcheck -x
+scripts/comfy-compat/*.sh`. The auto-fix publish job trusts only
+`guard-patch.sh` (NUL-delimited staged paths; never grep git's default,
+C-quoted path output) plus an App token without `workflows`. `scripts/` is
+outside `package.json` `files`, so
+none of it reaches npm. Adoption and inputs: README, "ComfyUI compatibility
+check".
+
 ## Diagrams
 
 `docs/architecture/*.d2` render to `*.svg` via `d2 in.d2 out.svg`. Commit the

@@ -1,0 +1,10 @@
+# actionlint (1.7.12, the newest as of 2026-10-28) does not yet know the
+# `job.workflow_repository` / `job.workflow_sha` context properties, which
+# GitHub documents for reusable workflows ("check out its own source code,
+# rather than the caller's repository"):
+# https://docs.github.com/en/actions/reference/workflows-and-actions/contexts
+# Drop this ignore once actionlint learns them.
+paths:
+  .github/workflows/comfy-compat.yml:
+    ignore:
+      - 'property "workflow_(repository|sha)" is not defined in object type'

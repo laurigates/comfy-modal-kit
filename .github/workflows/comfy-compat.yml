@@ -555,7 +555,7 @@ jobs:
 
       - name: Run Claude Code
         id: claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@v1.0.266
         env:
           # Scrub Anthropic / cloud / Actions secrets from every subprocess the
           # agent starts. claude-code-action turns this on by itself only with

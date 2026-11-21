@@ -145,3 +145,118 @@ bun run test       # vitest (pure fuzzy-scorer coverage)
 bunx biome check . # lint + format
 bunx knip          # dead-code / unused-dependency check
 ```
+
+## ComfyUI compatibility check (reusable workflow)
+
+Every pack's own CI stubs ComfyUI out. `.github/workflows/comfy-compat.yml` is
+the check that a pack still works against **real** ComfyUI, as a reusable
+workflow any pack in the fleet can call on a schedule. The fleet's reusable
+workflows normally live in `laurigates/.github`; this one lives here because
+the kit is the one repository every pack already depends on.
+
+**Targets.** By default the newest `vX.Y.Z` tag of `comfyanonymous/ComfyUI`
+(highest by `sort -V`, read off the remote) and `master`; `comfyui-ref` tests
+one tag, branch or SHA instead. The frontend under test is always the
+`comfyui-frontend-package==X` that ref's `requirements.txt` pins, never npm's
+latest.
+
+**Three tiers per target**, each reported separately in the job summary:
+
+| Tier | What it checks | Skips when |
+|---|---|---|
+| types | the pack's `typecheck` script with `@comfyorg/comfyui-frontend-types` re-resolved to the target's exact frontend version (in a scratch copy) | no `package.json` / `typecheck` script, no dependency on the types package, that version is not on npm, or it was published without its `.d.ts` |
+| backend | ComfyUI on CPU (CPU-only torch) with the pack copied into `custom_nodes/<pack-name>`: a clean `Import times` line for the pack, no traceback frame inside the pack, every `node-classes` entry in `/object_info`, and every web file `/extensions` lists under `/extensions/<pack-name>/` answering 200 | — |
+| browser | Chromium loads the UI: each extension name is in `app.extensions`, every pack module re-imports without its evaluation error, no extension hook (`init`/`setup`/`nodeCreated`…) of the pack throws, no console error / uncaught error / failed request is attributable to `/extensions/<pack-name>/`, and the server log gained no traceback through the pack while the UI was up (a crashing pack route) | the server serves nothing under `/extensions/<pack-name>/` and no `extension-names` were given |
+
+On a `schedule` or `workflow_dispatch` run from the default branch it keeps
+**one** issue labelled `comfy-compat` in sync: opened when a target goes red,
+rewritten (and commented when the set of failing targets changes) while red,
+closed with a comment once every failing target is green. A `comfyui-ref`
+dispatch is a one-off probe: its failure is reported, then dropped by the next
+run that does not test it. With `auto-fix: true` and a
+`CLAUDE_CODE_OAUTH_TOKEN`, Claude drafts a fix from the failing run's
+artifacts in a job holding no write credential (secrets scrubbed from the
+agent's subprocesses, an exact-command tool allowlist); a separate job
+re-checks the patch (`scripts/comfy-compat/guard-patch.sh`: plain paths only,
+nothing under `.github/`, no symlinks or submodules), applies it to
+`comfy-compat/fix-<slot>` and opens a **draft** PR with an App token narrowed
+to `contents` + `pull-requests`. Nothing merges it, and no second PR opens
+while one is open for the same target.
+
+### Adopting it in a pack
+
+```yaml
+# .github/workflows/comfy-compat.yml
+on:
+  schedule:
+    - cron: "43 3 * * *"   # pick an odd minute, outside 06-09 UTC
+  workflow_dispatch:
+    inputs:
+      comfyui-ref: { description: "ComfyUI ref (empty: newest release + master)", required: false, default: "" }
+
+permissions:
+  contents: read
+
+jobs:
+  compat:
+    uses: laurigates/comfy-modal-kit/.github/workflows/comfy-compat.yml@main
+    permissions:            # the union every job in it requests, auto-fix or not
+      contents: write
+      issues: write
+      pull-requests: write
+    with:
+      comfyui-ref: ${{ inputs.comfyui-ref || '' }}
+      node-classes: |       # omit for a frontend-only pack
+        MyNode
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+```
+
+`laurigates/comfyui-touch-numeric` is the reference caller (it also passes the
+release-please App so a fix PR runs CI). Pair it with a Renovate rule that
+bumps `@comfyorg/comfyui-frontend-types` with `rangeStrategy: "bump"`, so the
+pack's own lockfile follows upstream too.
+
+| Input | Default | Meaning |
+|---|---|---|
+| `pack-name` | repository name | directory under `custom_nodes/`, i.e. the `/extensions/<name>/` URL segment |
+| `extension-names` | derived | newline list of `app.registerExtension` names; empty reads the `registerExtension({ name: "…" })` literals out of the committed bundle and **fails** if there are none |
+| `node-classes` | — | newline list that must appear in `/object_info` |
+| `comfyui-ref` | newest release + `master` | test this one ref instead |
+| `python-version` | `3.12` | venv Python |
+| `file-issue` | `true` | sync the `comfy-compat` issue (schedule/dispatch on the default branch only) |
+| `auto-fix` | `false` | draft a fix PR when red (needs `file-issue` and the secret) |
+| `auto-fix-model` / `auto-fix-max-turns` | `opus` / `40` | the agent's model and turn budget |
+| `app-id` + secret `APP_PRIVATE_KEY` | — | GitHub App for the fix branch/PR; without it `GITHUB_TOKEN` opens it and no CI runs on it |
+
+### Running it locally
+
+The workflow's steps are the scripts in `scripts/comfy-compat/`, checked out
+at the workflow's own commit (`job.workflow_sha`); `run-local.sh` runs the same
+scripts in the same order for one target:
+
+```sh
+CACHE_DIR=~/.cache/comfy-compat scripts/comfy-compat/run-local.sh ../comfyui-touch-numeric          # newest release
+CACHE_DIR=~/.cache/comfy-compat scripts/comfy-compat/run-local.sh ../comfyui-touch-numeric master
+```
+
+It listens on port 18188 by default (`PORT=` to change), never 8188 where a
+live ComfyUI usually runs; a port that already answers is refused as a setup
+failure rather than tested.
+
+It needs `git`, `jq`, `curl`, `perl`, `uv`, `bun` (the pack's `.bun-version`
+for fidelity) and a `node` that can `require('playwright')`. The first run per
+target builds a CPU venv; later runs reuse it while `requirements.txt` is
+unchanged. `FRONTEND_VERSION_OVERRIDE=<x>` points the types tier at another
+types release, for exercising it when the target's pin is unusable (below).
+
+### Known: most frontend-types releases ship no declarations
+
+Measured 2026-10-28 with `npm view @comfyorg/comfyui-frontend-types@<v>
+dist.fileCount`: every release from **1.48.4 through 1.58.0** contains only
+`LICENSE` and `package.json` — its `types: ./index.d.ts` points at nothing —
+while 1.48.3 (the last before the gap), 1.45.10 and 1.58.1+ carry the file.
+ComfyUI v0.43.1 pins 1.57.4 and `master` pinned 1.57.6 that day, so the
+types tier **skipped** on both default targets, saying so in a notice. Re-check a version with the command
+above (2 files = no declarations); the tier detects it per run from the
+installed package itself, so nothing here needs updating when it changes.
